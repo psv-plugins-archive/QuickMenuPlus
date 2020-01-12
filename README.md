@@ -14,7 +14,7 @@ Download the latest version from [releases](https://github.com/cuevavirus/QuickV
 
 ```
 *main
-ur0:tai/quick_volume.skprx
+ur0:tai/quick_volume.suprx
 ```
 
 ## Credits
