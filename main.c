@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 // Author: 浅倉麗子
 
+#include <string.h>
 #include <psp2/avconfig.h>
 #include <psp2/kernel/modulemgr.h>
 #include <taihen.h>
@@ -76,6 +77,12 @@ static int sceAVConfigWriteMasterVol_hook(void) {
 	return sceAVConfigWriteRegSystemVol(vol);
 }
 
+static void startup(void) {
+	memset(inject_id, 0xFF, sizeof(inject_id));
+	memset(hook_id, 0xFF, sizeof(hook_id));
+	memset(hook_ref, 0xFF, sizeof(hook_ref));
+}
+
 static void cleanup(void) {
 	for (int i = 0; i < N_INJECT; i++) {
 		if (inject_id[i] >= 0) { taiInjectRelease(inject_id[i]); }
@@ -87,6 +94,7 @@ static void cleanup(void) {
 
 int _start() __attribute__ ((weak, alias("module_start")));
 int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
+	startup();
 
 	// get SceShell module info
 	tai_module_info_t minfo;
