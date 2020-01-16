@@ -49,7 +49,7 @@ static tai_hook_ref_t hook_ref[N_HOOK];
 typedef int (*set_slidebar_ptr)(int, int, int);
 
 // cannot TAI_CONTINUE due to lack of relocation by taiHEN
-static int sliderbar_callback_hook(int a) {
+static int slidebar_callback_hook(int a) {
 	int obj = *(int*)(a + 0x8);
 	int vptr = *(int*)obj;
 	int pos = *(int*)(obj + 0x294);
@@ -93,12 +93,12 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 	minfo.size = sizeof(minfo);
 	GLZ(taiGetModuleInfo("SceShell", &minfo));
 
-	int inject_offset, hook_offset;
+	int inject_offset, slidebar_callback_offset;
 
 	switch(minfo.module_nid) {
 		case 0x0552F692: // 3.60 retail
 			inject_offset = 0x14D01C;
-			hook_offset = 0x15358E;
+			slidebar_callback_offset = 0x15358E;
 			break;
 		case 0x5549BF1F: // 3.65 retail
 		case 0x34B4D82E: // 3.67 retail
@@ -109,7 +109,7 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 		case 0x939FFBE9: // 3.72 retail
 		case 0x734D476A: // 3.73 retail
 			inject_offset = 0x14D074;
-			hook_offset = 0x1535E6;
+			slidebar_callback_offset = 0x1535E6;
 			break;
 		default:
 			goto fail;
@@ -118,7 +118,7 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 	// cmp r0, r0
 	GLZ(inject_id[0] = taiInjectData(minfo.modid, 0, inject_offset, "\x80\x42", 2));
 
-	GLZ(HOOK_OFFSET(0, minfo.modid, hook_offset, sliderbar_callback));
+	GLZ(HOOK_OFFSET(0, minfo.modid, slidebar_callback_offset, slidebar_callback));
 	GLZ(HOOK_IMPORT(1, "SceShell", 0x79E0F03F, 0xC609B4D9, sceAVConfigGetMasterVol));
 	GLZ(HOOK_IMPORT(2, "SceShell", 0x79E0F03F, 0x65F03D6A, sceAVConfigWriteMasterVol));
 
