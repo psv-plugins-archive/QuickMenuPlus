@@ -34,6 +34,9 @@ extern int sceAVConfigWriteRegSystemVol(int vol);
 	if ((x) < 0) { return (x); }\
 } while(0)
 
+#define INJECT_DATA(idx, modid, segidx, offset, data, size)\
+	(inject_id[idx] = taiInjectData(modid, segidx, offset, data, size))
+
 #define HOOK_IMPORT(idx, mod, libnid, funcnid, hookfunc)\
 	(hook_id[idx] = taiHookFunctionImport(hook_ref+idx, mod, libnid, funcnid, hookfunc##_hook))
 
@@ -43,9 +46,11 @@ extern int sceAVConfigWriteRegSystemVol(int vol);
 #define N_INJECT 1
 static SceUID inject_id[N_INJECT];
 
-#define N_HOOK 3
+#define N_HOOK 4
 static SceUID hook_id[N_HOOK];
 static tai_hook_ref_t hook_ref[N_HOOK];
+
+static int (*master_volume_widget_init)(int r0, int r1);
 
 typedef int (*set_slidebar_ptr)(int, int, int);
 
@@ -77,6 +82,11 @@ static int sceAVConfigWriteMasterVol_hook(void) {
 	return sceAVConfigWriteRegSystemVol(vol);
 }
 
+static int music_widget_init_hook(int r0, int r1) {
+	master_volume_widget_init(r0 + 0x40, r1);
+	return TAI_CONTINUE(int, hook_ref[3], r0, r1);
+}
+
 static void startup(void) {
 	memset(inject_id, 0xFF, sizeof(inject_id));
 	memset(hook_id, 0xFF, sizeof(hook_id));
@@ -101,12 +111,20 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 	minfo.size = sizeof(minfo);
 	GLZ(taiGetModuleInfo("SceShell", &minfo));
 
-	int inject_offset, slidebar_callback_offset;
+	SceKernelModuleInfo sce_minfo;
+	sce_minfo.size = sizeof(sce_minfo);
+	GLZ(sceKernelGetModuleInfo(minfo.modid, &sce_minfo));
+
+	master_volume_widget_init = sce_minfo.segments[0].vaddr;
+
+	int inject_offset, slidebar_callback_offset, music_widget_init_offset;
 
 	switch(minfo.module_nid) {
 		case 0x0552F692: // 3.60 retail
-			inject_offset = 0x14D01C;
+			inject_offset = 0x14D026;
 			slidebar_callback_offset = 0x15358E;
+			music_widget_init_offset = 0x156152;
+			master_volume_widget_init += 0x152F6C;
 			break;
 		case 0x5549BF1F: // 3.65 retail
 		case 0x34B4D82E: // 3.67 retail
@@ -116,19 +134,25 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 		case 0xF476E785: // 3.71 retail
 		case 0x939FFBE9: // 3.72 retail
 		case 0x734D476A: // 3.73 retail
-			inject_offset = 0x14D074;
+			inject_offset = 0x14D07E;
 			slidebar_callback_offset = 0x1535E6;
+			music_widget_init_offset = 0x1561AA;
+			master_volume_widget_init += 0x152FC4;
 			break;
 		default:
 			goto fail;
 	}
 
-	// cmp r0, r0
-	GLZ(inject_id[0] = taiInjectData(minfo.modid, 0, inject_offset, "\x80\x42", 2));
+	// set Thumb bit
+	master_volume_widget_init = (void*)((int)master_volume_widget_init | 1);
+
+	// disable the original call to master_volume_widget_init (mov.w r0, #0)
+	GLZ(INJECT_DATA(0, minfo.modid, 0, inject_offset, "\x4f\xf0\x00\x00", 4));
 
 	GLZ(HOOK_OFFSET(0, minfo.modid, slidebar_callback_offset, slidebar_callback));
 	GLZ(HOOK_IMPORT(1, "SceShell", 0x79E0F03F, 0xC609B4D9, sceAVConfigGetMasterVol));
 	GLZ(HOOK_IMPORT(2, "SceShell", 0x79E0F03F, 0x65F03D6A, sceAVConfigWriteMasterVol));
+	GLZ(HOOK_OFFSET(3, minfo.modid, music_widget_init_offset, music_widget_init));
 
 	return SCE_KERNEL_START_SUCCESS;
 

@@ -20,6 +20,7 @@ add_executable(${PROJECT_NAME}
 
 target_link_libraries(${PROJECT_NAME}
   SceAVConfig_stub
+  SceKernelModulemgr_stub
   taihen_stub
 )
 
