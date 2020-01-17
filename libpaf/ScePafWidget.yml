@@ -1,0 +1,11 @@
+version: 2
+firmware: 3.60
+modules:
+  ScePaf:
+    nid: 0xCD679177
+    libraries:
+      ScePafWidget:
+        kernel: false
+        nid: 0x073F8C68
+        functions:
+          ScePafWidget_16479BA7: 0x16479BA7
