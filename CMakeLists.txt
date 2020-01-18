@@ -15,6 +15,7 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -nostdlib -Wall -Wextra -O3 -std=c99")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib")
 
 add_subdirectory(libpaf)
+add_subdirectory(libshellsvc)
 
 set(ELF "${PROJECT_NAME}.elf")
 set(SELF "${PROJECT_NAME}.suprx")
@@ -26,7 +27,7 @@ add_executable("${ELF}"
 target_link_libraries("${ELF}"
   SceKernelModulemgr_stub
   ScePafWidget_stub_weak
-  SceVshBridge_stub
+  SceShellUtil_stub_weak
   taihen_stub
 )
 
