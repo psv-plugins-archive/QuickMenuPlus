@@ -21,8 +21,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <psp2/kernel/modulemgr.h>
 #include <taihen.h>
 
-extern void vshPowerRequestColdReset(void);
 extern void ScePafWidget_16479BA7(int, int, int);
+int sceShellUtilReboot(int a1);
 
 #define GLZ(x) do {\
 	if ((x) < 0) { goto fail; }\
@@ -112,7 +112,7 @@ static int decode_movt_t1(int movt, int *imm) {
 }
 
 static void poweroff_btn_hold_cb(void) {
-	vshPowerRequestColdReset();
+	sceShellUtilReboot(0);
 }
 
 static void btn_init_hook(int r0, int r1, int r2, int r3) {
@@ -125,7 +125,7 @@ static void btn_init_hook(int r0, int r1, int r2, int r3) {
 		TAI_CONTINUE(void, hook_ref[0], r0, 0x10000005, poweroff_btn_hold_cb, r3);
 
 		// set holdable with physical button
-		*(char*)(r0 + 0x197) = *(char*)(r0 + 0x197) & 0xFD;
+		*(char*)(r0 + 0x197) &= 0xFD;
 	} else {
 		TAI_CONTINUE(void, hook_ref[0], r0, r1, r2, r3);
 	}
@@ -175,6 +175,9 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 		case 0x939FFBE9: // 3.72 retail
 		case 0x734D476A: // 3.73 retail
 			quick_menu_init_ofs = 0x14C460;
+			break;
+		case 0x6CB01295: // 3.60 Devkit
+			quick_menu_init_ofs = 0x143E40;
 			break;
 		default:
 			goto fail;
