@@ -8,7 +8,11 @@ Power off, reboot, and suspend, all from the quick menu. For both Playstation Vi
 
 ## Installation
 
-Supported firmware versions: 3.60, 3.65-3.73
+Supported firmware versions:
+
+- Retail 3.60-3.73
+- Testkit 3.65
+- Devkit 3.60
 
 Download the latest version from [releases](https://github.com/cuevavirus/QuickPower/releases) and install under `*main` of your taiHEN config.
 

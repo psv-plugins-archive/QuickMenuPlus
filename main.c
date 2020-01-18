@@ -160,12 +160,15 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 	GLZ(sceKernelGetModuleInfo(minfo.modid, &sce_minfo));
 	int seg0 = (int)sce_minfo.segments[0].vaddr;
 
+	// template ID FAE265F7 from impose_plugin.rco
 	int quick_menu_init_ofs;
 
 	switch(minfo.module_nid) {
 		case 0x0552F692: // 3.60 retail
+		case 0x532155E5: // 3.61 retail
 			quick_menu_init_ofs = 0x14C408;
 			break;
+		case 0xBB4B0A3E: // 3.63 retail
 		case 0x5549BF1F: // 3.65 retail
 		case 0x34B4D82E: // 3.67 retail
 		case 0x12DAC0F3: // 3.68 retail
@@ -175,6 +178,9 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 		case 0x939FFBE9: // 3.72 retail
 		case 0x734D476A: // 3.73 retail
 			quick_menu_init_ofs = 0x14C460;
+			break;
+		case 0x587F9CED: // 3.65 testkit
+			quick_menu_init_ofs = 0x144894;
 			break;
 		case 0x6CB01295: // 3.60 Devkit
 			quick_menu_init_ofs = 0x143E40;
