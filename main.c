@@ -37,11 +37,11 @@ extern int sceAVConfigWriteRegSystemVol(int vol);
 #define INJECT_DATA(idx, modid, segidx, offset, data, size)\
 	(inject_id[idx] = taiInjectData(modid, segidx, offset, data, size))
 
-#define HOOK_IMPORT(idx, mod, libnid, funcnid, hookfunc)\
-	(hook_id[idx] = taiHookFunctionImport(hook_ref+idx, mod, libnid, funcnid, hookfunc##_hook))
+#define HOOK_IMPORT(idx, mod, libnid, funcnid, func)\
+	(hook_id[idx] = taiHookFunctionImport(hook_ref+idx, mod, libnid, funcnid, func##_hook))
 
-#define HOOK_OFFSET(idx, modid, offset, hookfunc)\
-	(hook_id[idx] = taiHookFunctionOffset(hook_ref+idx, modid, 0, offset, 1, hookfunc##_hook))
+#define HOOK_OFFSET(idx, modid, offset, func)\
+	(hook_id[idx] = taiHookFunctionOffset(hook_ref+idx, modid, 0, offset, 1, func##_hook))
 
 #define N_INJECT 1
 static SceUID inject_id[N_INJECT];
