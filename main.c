@@ -130,9 +130,13 @@ static int slidebar_callback_hook(int a) {
 
 	int r0, r1, avls;
 	RLZ(sceAVConfigGetVolCtrlEnable(&r0, &r1, &avls));
-	if (avls && pos > AVLS_MAX) { pos = AVLS_MAX; }
-	RLZ(sceAVConfigSetSystemVol(pos));
-	(*(set_slidebar_ptr*)(vptr + 0x188))(obj, pos, 0);
+	if (avls && pos > AVLS_MAX) {
+		pos = AVLS_MAX;
+		RLZ(sceAVConfigSetSystemVol(pos));
+		(*(set_slidebar_ptr*)(vptr + 0x188))(obj, pos, 0);
+	} else {
+		RLZ(sceAVConfigSetSystemVol(pos));
+	}
 
 	return 0;
 }
