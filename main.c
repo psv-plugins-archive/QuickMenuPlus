@@ -34,6 +34,10 @@ extern int sceAVConfigWriteRegSystemVol(int vol);
 	if ((x) < 0) { return (x); }\
 } while(0)
 
+#define RNE(x, k) do {\
+	if ((x) != (k)) { return -1; }\
+} while(0)
+
 #define INJECT_DATA(idx, modid, segidx, offset, data, size)\
 	(inject_id[idx] = taiInjectData(modid, segidx, offset, data, size))
 
@@ -53,6 +57,70 @@ static tai_hook_ref_t hook_ref[N_HOOK];
 static int (*master_volume_widget_init)(int r0, int r1);
 
 typedef int (*set_slidebar_ptr)(int, int, int);
+
+static int decode_bl_t1(int bl, int *imm) {
+	// split into two shorts
+	short bl_1 = bl & 0xFFFF;
+	short bl_2 = (bl >> 16) & 0xFFFF;
+
+	// verify the form
+	RNE(bl_1 & 0xF800, 0xF000);
+	RNE(bl_2 & 0xD000, 0xD000);
+
+	// decode
+	int S = (bl_1 & 0x0400) >> 10;
+	int J1 = (bl_2 & 0x2000) >> 13;
+	int J2 = (bl_2 & 0x0800) >> 11;
+	int I1 = ~(J1 ^ S) & 1;
+	int I2 = ~(J2 ^ S) & 1;
+	int imm10 = bl_1 & 0x03FF;
+	int imm11 = bl_2 & 0x07FF;
+
+	// combine to 25 bits and sign extend
+	*imm = (S << 31) | (I1 << 30) | (I2 << 29) | (imm10 << 19) | (imm11 << 8);
+	*imm >>= 7;
+	return 0;
+}
+
+static int decode_movw_t3(int movw, int *imm) {
+	// split into two shorts
+	short movw_1 = movw & 0xFFFF;
+	short movw_2 = (movw >> 16) & 0xFFFF;
+
+	// verify the form
+	RNE(movw_1 & 0xFBF0, 0xF240);
+	RNE(movw_2 & 0x8000, 0x0000);
+
+	// decode
+	int imm4 = movw_1 & 0x000F;
+	int i = (movw_1 & 0x0400) >> 10;
+	int imm8 = movw_2 & 0x00FF;
+	int imm3 = (movw_2 & 0x7000) >> 12;
+
+	// combine to 16 bits
+	*(short*)imm = (imm4 << 12) | (i << 11) | (imm3 << 8) | imm8;
+	return 0;
+}
+
+static int decode_movt_t1(int movt, int *imm) {
+	// split into two shorts
+	short movt_1 = movt & 0xFFFF;
+	short movt_2 = (movt >> 16) & 0xFFFF;
+
+	// verify the form
+	RNE(movt_1 & 0xFBF0, 0xF2C0);
+	RNE(movt_2 & 0x8000, 0x0000);
+
+	// decode
+	int imm4 = movt_1 & 0x000F;
+	int i = (movt_1 & 0x0400) >> 10;
+	int imm8 = movt_2 & 0x00FF;
+	int imm3 = (movt_2 & 0x7000) >> 12;
+
+	// combine to 16 bits
+	*((short*)imm + 1) = (imm4 << 12) | (i << 11) | (imm3 << 8) | imm8;
+	return 0;
+}
 
 // cannot TAI_CONTINUE due to lack of relocation by taiHEN
 static int slidebar_callback_hook(int a) {
@@ -114,17 +182,14 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 	SceKernelModuleInfo sce_minfo;
 	sce_minfo.size = sizeof(sce_minfo);
 	GLZ(sceKernelGetModuleInfo(minfo.modid, &sce_minfo));
+	int seg0 = (int)sce_minfo.segments[0].vaddr;
 
-	master_volume_widget_init = sce_minfo.segments[0].vaddr;
-
-	int inject_offset, slidebar_callback_offset, music_widget_init_offset;
+	// template ID 84E0F33A from impose_plugin.rco
+	int quick_menu_init_ofs;
 
 	switch(minfo.module_nid) {
 		case 0x0552F692: // 3.60 retail
-			inject_offset = 0x14D026;
-			slidebar_callback_offset = 0x15358E;
-			music_widget_init_offset = 0x156152;
-			master_volume_widget_init += 0x152F6C;
+			quick_menu_init_ofs = 0x14C408;
 			break;
 		case 0x5549BF1F: // 3.65 retail
 		case 0x34B4D82E: // 3.67 retail
@@ -134,20 +199,33 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 		case 0xF476E785: // 3.71 retail
 		case 0x939FFBE9: // 3.72 retail
 		case 0x734D476A: // 3.73 retail
-			inject_offset = 0x14D07E;
-			slidebar_callback_offset = 0x1535E6;
-			music_widget_init_offset = 0x1561AA;
-			master_volume_widget_init += 0x152FC4;
+			quick_menu_init_ofs = 0x14C460;
 			break;
 		default:
 			goto fail;
 	}
 
+	// addr of master_volume_widget_init
+	int mvol_widget_init_call_addr = seg0 + quick_menu_init_ofs + 0xC1E;
+	GLZ(decode_bl_t1(*(int*)mvol_widget_init_call_addr, (int*)&master_volume_widget_init));
+	master_volume_widget_init += mvol_widget_init_call_addr + 4;
+
+	// offset of slidebar_callback
+	int slidebar_callback_offset;
+	GLZ(decode_movw_t3(*(int*)(master_volume_widget_init + 0x1E0), &slidebar_callback_offset));
+	GLZ(decode_movt_t1(*(int*)(master_volume_widget_init + 0x1E6), &slidebar_callback_offset));
+	slidebar_callback_offset = *(int*)slidebar_callback_offset - seg0;
+
 	// set Thumb bit
 	master_volume_widget_init = (void*)((int)master_volume_widget_init | 1);
 
+	// offset of music_widget_init
+	int music_widget_init_offset;
+	GLZ(decode_bl_t1(*(int*)(seg0 + quick_menu_init_ofs + 0x1006), &music_widget_init_offset));
+	music_widget_init_offset += quick_menu_init_ofs + 0x1006 + 4;
+
 	// disable the original call to master_volume_widget_init (mov.w r0, #0)
-	GLZ(INJECT_DATA(0, minfo.modid, 0, inject_offset, "\x4f\xf0\x00\x00", 4));
+	GLZ(INJECT_DATA(0, minfo.modid, 0, mvol_widget_init_call_addr - seg0, "\x4f\xf0\x00\x00", 4));
 
 	GLZ(HOOK_OFFSET(0, minfo.modid, slidebar_callback_offset, slidebar_callback));
 	GLZ(HOOK_IMPORT(1, "SceShell", 0x79E0F03F, 0xC609B4D9, sceAVConfigGetMasterVol));
