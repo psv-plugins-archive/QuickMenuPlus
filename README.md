@@ -8,7 +8,11 @@ Change volume from the quick menu on the Playstation Vita, just like on the Play
 
 ## Installation
 
-Supported firmware versions: 3.60, 3.65-3.73
+Supported firmware versions:
+
+- Retail 3.60-3.73
+- Testkit 3.65
+- Devkit 3.60
 
 Download the latest version from [releases](https://github.com/cuevavirus/QuickVolume/releases) and install under `*main` of your taiHEN config.
 
@@ -23,4 +27,4 @@ ur0:tai/quick_volume.suprx
 
 ## See more
 
-CBPS ([forum](https://forum.devchroma.nl/index.php), [discord](https://discord.gg/2nDCbxJ))
+CBPS ([forum](https://forum.devchroma.nl/index.php), [discord](https://discordapp.com/invite/2ccAkg3))
