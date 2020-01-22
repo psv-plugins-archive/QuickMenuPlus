@@ -41,11 +41,8 @@ extern int sceAVConfigWriteRegSystemVol(int vol);
 #define INJECT_ABS(idx, dest, data, size)\
 	(inject_id[idx] = taiInjectAbs(dest, data, size))
 
-#define HOOK_IMPORT(idx, mod, libnid, funcnid, func)\
-	(hook_id[idx] = taiHookFunctionImport(hook_ref+idx, mod, libnid, funcnid, func##_hook))
-
-#define HOOK_OFFSET(idx, modid, offset, func)\
-	(hook_id[idx] = taiHookFunctionOffset(hook_ref+idx, modid, 0, offset, 1, func##_hook))
+#define HOOK_OFFSET(idx, modid, offset, thumb, func)\
+	(hook_id[idx] = taiHookFunctionOffset(hook_ref+idx, modid, 0, offset, thumb, func##_hook))
 
 #define N_INJECT 1
 static SceUID inject_id[N_INJECT];
@@ -78,6 +75,30 @@ static int decode_bl_t1(int bl, int *imm) {
 
 	// combine to 25 bits and sign extend
 	*imm = (S << 31) | (I1 << 30) | (I2 << 29) | (imm10 << 19) | (imm11 << 8);
+	*imm >>= 7;
+	return 0;
+}
+
+static int decode_blx_t2(int blx, int *imm) {
+	// split into two shorts
+	short blx_1 = blx & 0xFFFF;
+	short blx_2 = (blx >> 16) & 0xFFFF;
+
+	// verify the form
+	RNE(blx_1 & 0xF800, 0xF000);
+	RNE(blx_2 & 0xD001, 0xC000);
+
+	// decode
+	int S = (blx_1 & 0x0400) >> 10;
+	int J1 = (blx_2 & 0x2000) >> 13;
+	int J2 = (blx_2 & 0x0800) >> 11;
+	int I1 = ~(J1 ^ S) & 1;
+	int I2 = ~(J2 ^ S) & 1;
+	int imm10H = blx_1 & 0x03FF;
+	int imm10L = (blx_2 & 0x07FE) >> 1;
+
+	// combine to 25 bits and sign extend
+	*imm = (S << 31) | (I1 << 30) | (I2 << 29) | (imm10H << 19) | (imm10L << 9);
 	*imm >>= 7;
 	return 0;
 }
@@ -228,6 +249,15 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 	GLZ(decode_movt_t1(*(int*)(master_volume_widget_init + 0x1E6), &slidebar_callback_offset));
 	slidebar_callback_offset = *(int*)slidebar_callback_offset - seg0;
 
+	// offset of sceAVConfig imports
+	// We hook these by offset because if SceShell is loaded before taiHEN,
+	// i.e. when not using Enso, the NIDs of its imports are overwritten.
+	int sceAVConfigGetMasterVol_ofs, sceAVConfigWriteMasterVol_ofs;
+	GLZ(decode_blx_t2(*(int*)(master_volume_widget_init + 0x346), &sceAVConfigGetMasterVol_ofs));
+	unsigned int pc = (unsigned int)master_volume_widget_init + 0x346 + 0x4;
+	sceAVConfigGetMasterVol_ofs += pc - (pc % 4) - seg0;
+	sceAVConfigWriteMasterVol_ofs = sceAVConfigGetMasterVol_ofs - 0x80;
+
 	// set Thumb bit
 	master_volume_widget_init = (void*)((int)master_volume_widget_init | 1);
 
@@ -239,10 +269,10 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 	// disable the original call to master_volume_widget_init (mov.w r0, #0)
 	GLZ(INJECT_ABS(0, (void*)mvol_widget_init_call_addr, "\x4f\xf0\x00\x00", 4));
 
-	GLZ(HOOK_OFFSET(0, minfo.modid, slidebar_callback_offset, slidebar_callback));
-	GLZ(HOOK_IMPORT(1, "SceShell", 0x79E0F03F, 0xC609B4D9, sceAVConfigGetMasterVol));
-	GLZ(HOOK_IMPORT(2, "SceShell", 0x79E0F03F, 0x65F03D6A, sceAVConfigWriteMasterVol));
-	GLZ(HOOK_OFFSET(3, minfo.modid, music_widget_init_offset, music_widget_init));
+	GLZ(HOOK_OFFSET(0, minfo.modid, slidebar_callback_offset, 1, slidebar_callback));
+	GLZ(HOOK_OFFSET(3, minfo.modid, music_widget_init_offset, 1, music_widget_init));
+	GLZ(HOOK_OFFSET(1, minfo.modid, sceAVConfigGetMasterVol_ofs, 0, sceAVConfigGetMasterVol));
+	GLZ(HOOK_OFFSET(2, minfo.modid, sceAVConfigWriteMasterVol_ofs, 0, sceAVConfigWriteMasterVol));
 
 	return SCE_KERNEL_START_SUCCESS;
 
