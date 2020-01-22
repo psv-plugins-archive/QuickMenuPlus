@@ -38,8 +38,8 @@ extern int sceAVConfigWriteRegSystemVol(int vol);
 	if ((x) != (k)) { return -1; }\
 } while(0)
 
-#define INJECT_DATA(idx, modid, segidx, offset, data, size)\
-	(inject_id[idx] = taiInjectData(modid, segidx, offset, data, size))
+#define INJECT_ABS(idx, dest, data, size)\
+	(inject_id[idx] = taiInjectAbs(dest, data, size))
 
 #define HOOK_IMPORT(idx, mod, libnid, funcnid, func)\
 	(hook_id[idx] = taiHookFunctionImport(hook_ref+idx, mod, libnid, funcnid, func##_hook))
@@ -237,7 +237,7 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 	music_widget_init_offset += quick_menu_init_ofs + 0x1006 + 4;
 
 	// disable the original call to master_volume_widget_init (mov.w r0, #0)
-	GLZ(INJECT_DATA(0, minfo.modid, 0, mvol_widget_init_call_addr - seg0, "\x4f\xf0\x00\x00", 4));
+	GLZ(INJECT_ABS(0, (void*)mvol_widget_init_call_addr, "\x4f\xf0\x00\x00", 4));
 
 	GLZ(HOOK_OFFSET(0, minfo.modid, slidebar_callback_offset, slidebar_callback));
 	GLZ(HOOK_IMPORT(1, "SceShell", 0x79E0F03F, 0xC609B4D9, sceAVConfigGetMasterVol));
