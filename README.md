@@ -1,10 +1,10 @@
 # Quick Volume
 
-[**Download**](https://github.com/cuevavirus/QuickVolume/releases)
+[Download binary](https://forum.devchroma.nl/index.php/topic,66.0.html) | [Report bugs](https://github.com/cuevavirus/quickvolume/issues) | [Source code](https://git.shotatoshounenwachigau.moe/vita/quickvolume/)
 
 Change volume from the quick menu on the Playstation Vita, just like on the Playstation TV.
 
-![preview.png](https://github.com/cuevavirus/QuickVolume/raw/assets/preview.png)
+![preview.png](https://git.shotatoshounenwachigau.moe/vita/quickvolume/plain/preview.png?h=assets)
 
 ## Installation
 
@@ -14,16 +14,20 @@ Supported firmware versions:
 - Testkit 3.65
 - Devkit 3.60
 
-Download the latest version from [releases](https://github.com/cuevavirus/QuickVolume/releases) and install under `*main` of your taiHEN config.
+Install under `*main` of your taiHEN config.
 
 ```
 *main
 ur0:tai/quick_volume.suprx
 ```
 
+## Contributing
+
+Use [git-format-patch](https://www.git-scm.com/docs/git-format-patch) or [git-request-pull](https://www.git-scm.com/docs/git-request-pull) and email me at <asakurareiko@protonmail.ch>.
+
 ## Credits
 
-- Author: [浅倉麗子](https://github.com/cuevavirus)
+- Author: 浅倉麗子
 
 ## See more
 
