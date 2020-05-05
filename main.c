@@ -1,6 +1,7 @@
 /*
-Quick Power
-Copyright (C) 2020 浅倉麗子
+This file is part of Quick Power
+Copyright © 2020 浅倉麗子
+Copyright © 2020 Princess-of-Sleeping
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
