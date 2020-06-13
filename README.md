@@ -11,7 +11,7 @@ Power off, reboot, and suspend, all from the quick menu. For both Playstation Vi
 Supported firmware versions:
 
 - Retail 3.60-3.73
-- Testkit 3.65
+- Testkit 3.60, 3.65
 - Devkit 3.60
 
 Install under `*main` of your taiHEN config.
@@ -27,7 +27,7 @@ Use [git-format-patch](https://www.git-scm.com/docs/git-format-patch) or [git-re
 
 ## Credits
 
-- SceShellUtil: Princess-of-Sleeping
+- SceShellUtil RE: Princess-of-Sleeping
 - Author: 浅倉麗子
 
 ## See more

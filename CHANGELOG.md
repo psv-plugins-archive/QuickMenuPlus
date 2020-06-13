@@ -1,5 +1,9 @@
 ### Changelog
 
+#### v1.2.0
+
+- Support testkit firmware 3.60
+
 #### v1.1.0
 
 - Enhanced reboot routine (Credits: [Princess of Sleeping](https://github.com/Princess-of-Sleeping))

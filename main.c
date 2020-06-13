@@ -180,6 +180,9 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 		case 0x734D476A: // 3.73 retail
 			quick_menu_init_ofs = 0x14C460;
 			break;
+		case 0xEAB89D5C: // 3.60 testkit
+			quick_menu_init_ofs = 0x14483C;
+			break;
 		case 0x587F9CED: // 3.65 testkit
 			quick_menu_init_ofs = 0x144894;
 			break;
