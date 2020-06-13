@@ -44,7 +44,9 @@ static SceUID inject_id[N_INJECT];
 static SceUID hook_id[N_HOOK];
 static tai_hook_ref_t hook_ref[N_HOOK];
 
-static int poweroff_btn_cb_addr;
+typedef void btn_cb(void);
+
+static btn_cb *poweroff_btn_cb;
 
 static int decode_bl_t1(int bl, int *imm) {
 	// split into two shorts
@@ -114,19 +116,19 @@ static void poweroff_btn_hold_cb(void) {
 	sceShellUtilRequestColdReset(0);
 }
 
-static void btn_init_hook(int r0, int r1, int r2, int r3) {
-	if (r1 == 0x10000008 && r2 == poweroff_btn_cb_addr) {
+static void btn_init_hook(int r0, int r1, btn_cb *r2, int r3) {
+	if (r1 == 0x10000008 && r2 == poweroff_btn_cb) {
 		// set holdable button with threshold 200ms
 		// and repeat threshold 800ms
 		ScePafWidget_16479BA7(r0, 200, 800);
 
-		TAI_CONTINUE(void, hook_ref[0], r0, r1, r2, r3);
-		TAI_CONTINUE(void, hook_ref[0], r0, 0x10000005, poweroff_btn_hold_cb, r3);
+		TAI_NEXT(btn_init_hook, hook_ref[0], r0, r1, r2, r3);
+		TAI_NEXT(btn_init_hook, hook_ref[0], r0, 0x10000005, poweroff_btn_hold_cb, r3);
 
 		// set holdable with physical button
 		*(char*)(r0 + 0x197) &= 0xFD;
 	} else {
-		TAI_CONTINUE(void, hook_ref[0], r0, r1, r2, r3);
+		TAI_NEXT(btn_init_hook, hook_ref[0], r0, r1, r2, r3);
 	}
 }
 
@@ -192,8 +194,8 @@ int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
 	int btn_init_call_addr = seg0 + quick_menu_init_ofs + 0x5B8;
 
 	// addr of the function poweroff_btn_cb
-	GLZ(decode_movw_t3(*(int*)(btn_init_call_addr - 0x12), &poweroff_btn_cb_addr));
-	GLZ(decode_movt_t1(*(int*)(btn_init_call_addr - 0x0C), &poweroff_btn_cb_addr));
+	GLZ(decode_movw_t3(*(int*)(btn_init_call_addr - 0x12), (int*)&poweroff_btn_cb));
+	GLZ(decode_movt_t1(*(int*)(btn_init_call_addr - 0x0C), (int*)&poweroff_btn_cb));
 
 	// addr of the function btn_init
 	int btn_init_addr;
