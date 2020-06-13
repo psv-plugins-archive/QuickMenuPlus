@@ -18,10 +18,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <string.h>
 #include <psp2/kernel/modulemgr.h>
+#include <psp2/shellsvc.h>
 #include <taihen.h>
 
 extern void ScePafWidget_16479BA7(int, int, int);
-int sceShellUtilReboot(int a1);
 
 #define GLZ(x) do {\
 	if ((x) < 0) { goto fail; }\
@@ -111,7 +111,7 @@ static int decode_movt_t1(int movt, int *imm) {
 }
 
 static void poweroff_btn_hold_cb(void) {
-	sceShellUtilReboot(0);
+	sceShellUtilRequestColdReset(0);
 }
 
 static void btn_init_hook(int r0, int r1, int r2, int r3) {

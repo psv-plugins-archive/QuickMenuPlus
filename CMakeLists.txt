@@ -13,24 +13,24 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.13)
 
 if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-  if(DEFINED ENV{VITASDK})
-    set(CMAKE_TOOLCHAIN_FILE "$ENV{VITASDK}/share/vita.toolchain.cmake" CACHE PATH "toolchain file")
+  if(DEFINED ENV{DOLCESDK})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{DOLCESDK}/share/dolce.toolchain.cmake" CACHE PATH "toolchain file")
   else()
-    message(FATAL_ERROR "Please define VITASDK to point to your SDK path!")
+    message(FATAL_ERROR "Please define DOLCESDK to point to your SDK path!")
   endif()
 endif()
 
+include("$ENV{DOLCESDK}/share/dolce.cmake" REQUIRED)
+
 project(quick_power LANGUAGES C)
-include("$ENV{VITASDK}/share/vita.cmake" REQUIRED)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -nostdlib -Wall -Wextra -O3 -std=c99")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -nostdlib")
-
-add_subdirectory(libpaf)
-add_subdirectory(libshellsvc)
+dolce_gen_libs(ScePaf_stubs
+  ScePaf.yml
+  LIB ScePaf2_stub_weak
+)
 
 set(ELF "${PROJECT_NAME}.elf")
 set(SELF "${PROJECT_NAME}.suprx")
@@ -39,15 +39,24 @@ add_executable("${ELF}"
   main.c
 )
 
+target_compile_options("${ELF}"
+  PRIVATE -O3 -std=c99
+  PRIVATE -Wall -Wextra -Wdouble-promotion -Wshadow -Wundef
+  PRIVATE -fsingle-precision-constant -fno-common
+)
+
+target_link_options("${ELF}"
+  PRIVATE -nostdlib
+)
+
 target_link_libraries("${ELF}"
   SceKernelModulemgr_stub
-  ScePafWidget_stub_weak
-  SceShellUtil_stub_weak
+  ScePaf2_stub_weak
+  SceShellSvc_stub_weak
   taihen_stub
 )
 
-vita_create_self("${SELF}"
+dolce_create_self("${SELF}"
   "${ELF}"
   CONFIG exports.yml
-  UNSAFE
 )
