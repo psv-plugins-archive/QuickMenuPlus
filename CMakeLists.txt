@@ -47,6 +47,7 @@ set(MODULE_INFO "quickmenuplus.yml")
 
 add_executable("${ELF}"
   quickmenuplus.c
+  opcode.c
 )
 
 target_link_libraries("${ELF}"

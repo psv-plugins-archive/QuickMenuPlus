@@ -26,22 +26,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <taihen.h>
 
+#include "common.h"
+#include "opcode.h"
+
 extern void ScePafWidget_16479BA7(int, int, int);
-
-#define USED __attribute__ ((used))
-#define UNUSED __attribute__ ((unused))
-
-#define GLZ(x) do {\
-	if ((x) < 0) { goto fail; }\
-} while (0)
-
-#define RLZ(x) do {\
-	if ((x) < 0) { return (x); }\
-} while(0)
-
-#define RNE(x, k) do {\
-	if ((x) != (k)) { return -1; }\
-} while(0)
 
 #define INJECT_ABS(idx, dest, data, size)\
 	(inject_id[idx] = taiInjectAbs(dest, data, size))
@@ -61,94 +49,6 @@ typedef int set_slidebar_pos(int, int, int);
 
 static btn_cb *poweroff_btn_cb;
 static int (*vol_widget_init)(int, int);
-
-static int decode_bl_t1(int bl, int *imm) {
-	// split into two shorts
-	short bl_1 = bl & 0xFFFF;
-	short bl_2 = (bl >> 16) & 0xFFFF;
-
-	// verify the form
-	RNE(bl_1 & 0xF800, 0xF000);
-	RNE(bl_2 & 0xD000, 0xD000);
-
-	// decode
-	int S = (bl_1 & 0x0400) >> 10;
-	int J1 = (bl_2 & 0x2000) >> 13;
-	int J2 = (bl_2 & 0x0800) >> 11;
-	int I1 = ~(J1 ^ S) & 1;
-	int I2 = ~(J2 ^ S) & 1;
-	int imm10 = bl_1 & 0x03FF;
-	int imm11 = bl_2 & 0x07FF;
-
-	// combine to 25 bits and sign extend
-	*imm = (S << 31) | (I1 << 30) | (I2 << 29) | (imm10 << 19) | (imm11 << 8);
-	*imm >>= 7;
-	return 0;
-}
-
-static int decode_blx_t2(int blx, int *imm) {
-	// split into two shorts
-	short blx_1 = blx & 0xFFFF;
-	short blx_2 = (blx >> 16) & 0xFFFF;
-
-	// verify the form
-	RNE(blx_1 & 0xF800, 0xF000);
-	RNE(blx_2 & 0xD001, 0xC000);
-
-	// decode
-	int S = (blx_1 & 0x0400) >> 10;
-	int J1 = (blx_2 & 0x2000) >> 13;
-	int J2 = (blx_2 & 0x0800) >> 11;
-	int I1 = ~(J1 ^ S) & 1;
-	int I2 = ~(J2 ^ S) & 1;
-	int imm10H = blx_1 & 0x03FF;
-	int imm10L = (blx_2 & 0x07FE) >> 1;
-
-	// combine to 25 bits and sign extend
-	*imm = (S << 31) | (I1 << 30) | (I2 << 29) | (imm10H << 19) | (imm10L << 9);
-	*imm >>= 7;
-	return 0;
-}
-
-static int decode_movw_t3(int movw, int *imm) {
-	// split into two shorts
-	short movw_1 = movw & 0xFFFF;
-	short movw_2 = (movw >> 16) & 0xFFFF;
-
-	// verify the form
-	RNE(movw_1 & 0xFBF0, 0xF240);
-	RNE(movw_2 & 0x8000, 0x0000);
-
-	// decode
-	int imm4 = movw_1 & 0x000F;
-	int i = (movw_1 & 0x0400) >> 10;
-	int imm8 = movw_2 & 0x00FF;
-	int imm3 = (movw_2 & 0x7000) >> 12;
-
-	// combine to 16 bits
-	*(short*)imm = (imm4 << 12) | (i << 11) | (imm3 << 8) | imm8;
-	return 0;
-}
-
-static int decode_movt_t1(int movt, int *imm) {
-	// split into two shorts
-	short movt_1 = movt & 0xFFFF;
-	short movt_2 = (movt >> 16) & 0xFFFF;
-
-	// verify the form
-	RNE(movt_1 & 0xFBF0, 0xF2C0);
-	RNE(movt_2 & 0x8000, 0x0000);
-
-	// decode
-	int imm4 = movt_1 & 0x000F;
-	int i = (movt_1 & 0x0400) >> 10;
-	int imm8 = movt_2 & 0x00FF;
-	int imm3 = (movt_2 & 0x7000) >> 12;
-
-	// combine to 16 bits
-	*((short*)imm + 1) = (imm4 << 12) | (i << 11) | (imm3 << 8) | imm8;
-	return 0;
-}
 
 static void poweroff_btn_hold_cb(void) {
 	sceShellUtilRequestColdReset(0);
