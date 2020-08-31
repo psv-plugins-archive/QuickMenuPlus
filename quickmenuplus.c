@@ -18,8 +18,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <string.h>
 
+#include <psp2/kernel/clib.h>
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/shellsvc.h>
+#include <psp2/vshbridge.h>
 
 #include <taihen.h>
 
@@ -36,11 +38,11 @@ extern void ScePafWidget_16479BA7(int, int, int);
 	if ((x) != (k)) { return -1; }\
 } while(0)
 
-#define INJECT_DATA(idx, modid, segidx, offset, data, size)\
-	(inject_id[idx] = taiInjectData(modid, segidx, offset, data, size))
+#define INJECT_ABS(idx, dest, data, size)\
+	(inject_id[idx] = taiInjectAbs(dest, data, size))
 
-#define HOOK_OFFSET(idx, modid, offset, func)\
-	(hook_id[idx] = taiHookFunctionOffset(hook_ref+idx, modid, 0, offset, 1, func##_hook))
+#define HOOK_OFFSET(idx, modid, offset, thumb, func)\
+	(hook_id[idx] = taiHookFunctionOffset(hook_ref+idx, modid, 0, offset, thumb, func##_hook))
 
 #define N_INJECT 1
 static SceUID inject_id[N_INJECT];
@@ -138,9 +140,9 @@ static void btn_init_hook(int r0, int r1, btn_cb *r2, int r3) {
 }
 
 static void startup(void) {
-	memset(inject_id, 0xFF, sizeof(inject_id));
-	memset(hook_id, 0xFF, sizeof(hook_id));
-	memset(hook_ref, 0xFF, sizeof(hook_ref));
+	sceClibMemset(inject_id, 0xFF, sizeof(inject_id));
+	sceClibMemset(hook_id, 0xFF, sizeof(hook_id));
+	sceClibMemset(hook_ref, 0xFF, sizeof(hook_ref));
 }
 
 static void cleanup(void) {
@@ -165,13 +167,12 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 	GLZ(sceKernelGetModuleInfo(minfo.modid, &sce_minfo));
 	int seg0 = (int)sce_minfo.segments[0].vaddr;
 
-	// template ID FAE265F7 from impose_plugin.rco
-	int quick_menu_init_ofs;
+	int quick_menu_init = seg0;
 
 	switch(minfo.module_nid) {
 		case 0x0552F692: // 3.60 retail
 		case 0x532155E5: // 3.61 retail
-			quick_menu_init_ofs = 0x14C408;
+			quick_menu_init += 0x14C408;
 			break;
 		case 0xBB4B0A3E: // 3.63 retail
 		case 0x5549BF1F: // 3.65 retail
@@ -182,37 +183,42 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 		case 0xF476E785: // 3.71 retail
 		case 0x939FFBE9: // 3.72 retail
 		case 0x734D476A: // 3.73 retail
-			quick_menu_init_ofs = 0x14C460;
+			quick_menu_init += 0x14C460;
 			break;
 		case 0xEAB89D5C: // 3.60 testkit
-			quick_menu_init_ofs = 0x14483C;
+			quick_menu_init += 0x14483C;
 			break;
 		case 0x587F9CED: // 3.65 testkit
-			quick_menu_init_ofs = 0x144894;
+			quick_menu_init += 0x144894;
 			break;
 		case 0x6CB01295: // 3.60 Devkit
-			quick_menu_init_ofs = 0x143E40;
+			quick_menu_init += 0x143E40;
 			break;
 		default:
 			goto fail;
 	}
 
+	// power widget
+	// template ID FAE265F7 from impose_plugin.rco
+
 	// addr of branch to btn_init from quick_menu_init
-	int btn_init_call_addr = seg0 + quick_menu_init_ofs + 0x5B8;
+	int btn_init_bl = quick_menu_init + 0x5B8;
 
 	// addr of the function poweroff_btn_cb
-	GLZ(decode_movw_t3(*(int*)(btn_init_call_addr - 0x12), (int*)&poweroff_btn_cb));
-	GLZ(decode_movt_t1(*(int*)(btn_init_call_addr - 0x0C), (int*)&poweroff_btn_cb));
+	GLZ(decode_movw_t3(*(int*)(btn_init_bl - 0x12), (int*)&poweroff_btn_cb));
+	GLZ(decode_movt_t1(*(int*)(btn_init_bl - 0x0C), (int*)&poweroff_btn_cb));
 
 	// addr of the function btn_init
-	int btn_init_addr;
-	GLZ(decode_bl_t1(*(int*)btn_init_call_addr, &btn_init_addr));
-	btn_init_addr += btn_init_call_addr + 4;
+	int btn_init;
+	GLZ(decode_bl_t1(*(int*)btn_init_bl, &btn_init));
+	btn_init += btn_init_bl + 4;
 
-	// enable power widget (cmp r0, r0)
-	GLZ(INJECT_DATA(0, minfo.modid, 0, quick_menu_init_ofs + 0x44E, "\x80\x42", 2));
+	GLZ(HOOK_OFFSET(0, minfo.modid, btn_init - seg0, 1, btn_init));
 
-	GLZ(HOOK_OFFSET(0, minfo.modid, btn_init_addr - seg0, btn_init));
+	if (!vshSblAimgrIsDolce()) {
+		// enable power widget (cmp r0, r0)
+		GLZ(INJECT_ABS(0, (void*)(quick_menu_init + 0x44E), "\x80\x42", 2));
+	}
 
 	return SCE_KERNEL_START_SUCCESS;
 

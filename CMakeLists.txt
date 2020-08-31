@@ -53,8 +53,10 @@ target_link_libraries("${ELF}"
   taihen_stub
 
   SceKernelModulemgr_stub
+  SceLibKernel_stub
   ScePaf2_stub_weak
   SceShellSvc_stub_weak
+  SceVshBridge_stub
 )
 
 dolce_create_self("${SELF}"
