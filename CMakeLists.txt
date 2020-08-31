@@ -1,4 +1,4 @@
-# This file is part of Quick Power
+# This file is part of Quick Menu Plus
 # Copyright © 2020 浅倉麗子
 
 # This program is free software: you can redistribute it and/or modify
@@ -19,7 +19,7 @@ set(CMAKE_TOOLCHAIN_FILE "$ENV{DOLCESDK}/share/dolce.toolchain.cmake" CACHE PATH
 set(DOLCESDK_CMAKE_FILE "$ENV{DOLCESDK}/share/dolce.cmake" CACHE PATH "DolceSDK CMake functions file")
 include("${DOLCESDK_CMAKE_FILE}" REQUIRED)
 
-project(quickpower LANGUAGES C)
+project(quickmenuplus LANGUAGES C)
 
 add_compile_options(
   -Os -std=c99
@@ -41,12 +41,12 @@ dolce_gen_libs(ScePaf_stubs
 
 # Build self
 
-set(ELF "quickpower.elf")
-set(SELF "quickpower.suprx")
-set(MODULE_INFO "quickpower.yml")
+set(ELF "quickmenuplus.elf")
+set(SELF "quickmenuplus.suprx")
+set(MODULE_INFO "quickmenuplus.yml")
 
 add_executable("${ELF}"
-  quickpower.c
+  quickmenuplus.c
 )
 
 target_link_libraries("${ELF}"

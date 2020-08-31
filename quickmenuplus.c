@@ -1,5 +1,5 @@
 /*
-This file is part of Quick Power
+This file is part of Quick Menu Plus
 Copyright © 2020 浅倉麗子
 Copyright © 2020 Princess-of-Sleeping
 
