@@ -15,48 +15,49 @@
 
 cmake_minimum_required(VERSION 3.13)
 
-if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-  if(DEFINED ENV{DOLCESDK})
-    set(CMAKE_TOOLCHAIN_FILE "$ENV{DOLCESDK}/share/dolce.toolchain.cmake" CACHE PATH "toolchain file")
-  else()
-    message(FATAL_ERROR "Please define DOLCESDK to point to your SDK path!")
-  endif()
-endif()
+set(CMAKE_TOOLCHAIN_FILE "$ENV{DOLCESDK}/share/dolce.toolchain.cmake" CACHE PATH "DolceSDK toolchain file")
+set(DOLCESDK_CMAKE_FILE "$ENV{DOLCESDK}/share/dolce.cmake" CACHE PATH "DolceSDK CMake functions file")
+include("${DOLCESDK_CMAKE_FILE}" REQUIRED)
 
-include("$ENV{DOLCESDK}/share/dolce.cmake" REQUIRED)
+project(quickpower LANGUAGES C)
 
-project(quick_power LANGUAGES C)
+add_compile_options(
+  -Os -std=c99
+  -Wall -Wextra -Wdouble-promotion -Wshadow -Wundef
+  -fsingle-precision-constant -fno-common -flto
+)
+
+add_link_options(
+  -nostdlib
+  --entry=module_start
+)
+
+# Build ScePaf stubs
 
 dolce_gen_libs(ScePaf_stubs
   ScePaf.yml
   LIB ScePaf2_stub_weak
 )
 
-set(ELF "${PROJECT_NAME}.elf")
-set(SELF "${PROJECT_NAME}.suprx")
+# Build self
+
+set(ELF "quickpower.elf")
+set(SELF "quickpower.suprx")
+set(MODULE_INFO "quickpower.yml")
 
 add_executable("${ELF}"
-  main.c
-)
-
-target_compile_options("${ELF}"
-  PRIVATE -O3 -std=c99
-  PRIVATE -Wall -Wextra -Wdouble-promotion -Wshadow -Wundef
-  PRIVATE -fsingle-precision-constant -fno-common
-)
-
-target_link_options("${ELF}"
-  PRIVATE -nostdlib
+  quickpower.c
 )
 
 target_link_libraries("${ELF}"
+  taihen_stub
+
   SceKernelModulemgr_stub
   ScePaf2_stub_weak
   SceShellSvc_stub_weak
-  taihen_stub
 )
 
 dolce_create_self("${SELF}"
   "${ELF}"
-  CONFIG exports.yml
+  CONFIG "${MODULE_INFO}"
 )

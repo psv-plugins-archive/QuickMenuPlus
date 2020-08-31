@@ -17,11 +17,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include <string.h>
+
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/shellsvc.h>
+
 #include <taihen.h>
 
 extern void ScePafWidget_16479BA7(int, int, int);
+
+#define USED __attribute__ ((used))
+#define UNUSED __attribute__ ((unused))
 
 #define GLZ(x) do {\
 	if ((x) < 0) { goto fail; }\
@@ -147,8 +152,7 @@ static void cleanup(void) {
 	}
 }
 
-int _start() __attribute__ ((weak, alias("module_start")));
-int module_start(SceSize argc, const void *argv) { (void)argc; (void)argv;
+USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 	startup();
 
 	// get SceShell module info
@@ -217,7 +221,7 @@ fail:
 	return SCE_KERNEL_START_FAILED;
 }
 
-int module_stop(SceSize argc, const void *argv) { (void)argc; (void)argv;
+USED int module_stop(UNUSED SceSize args, UNUSED const void *argp) {
 	cleanup();
 	return SCE_KERNEL_STOP_SUCCESS;
 }
