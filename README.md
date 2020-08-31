@@ -5,6 +5,7 @@ Quick Menu Plus adds the following features to the Quick Menu on the PlayStation
 - Power off and standby buttons
 - Reboot by holding the power off button
 - Volume slidebar
+- Reduce Quick Menu open time from 2 seconds to 200 milliseconds
 
 ![preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/preview.png?h=assets)
 

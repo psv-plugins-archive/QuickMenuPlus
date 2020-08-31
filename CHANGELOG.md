@@ -2,7 +2,7 @@
 
 #### v2.0.0
 
-- Merged Quick Power and Quick Volume
+- Merged Quick Power, Quick Volume, and Rapidmenu
 - Support testkit firmware 3.60
 
 ### Changelog - Quick Power

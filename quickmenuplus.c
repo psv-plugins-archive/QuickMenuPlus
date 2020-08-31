@@ -126,6 +126,8 @@ static void cleanup(void) {
 USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 	startup();
 
+	vshPowerSetPsButtonPushTime(200 * 1000);
+
 	// get SceShell module info
 	tai_module_info_t minfo;
 	minfo.size = sizeof(minfo);
