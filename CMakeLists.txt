@@ -52,6 +52,7 @@ add_executable("${ELF}"
 target_link_libraries("${ELF}"
   taihen_stub
 
+  SceAVConfig_stub
   SceKernelModulemgr_stub
   SceLibKernel_stub
   ScePaf2_stub_weak

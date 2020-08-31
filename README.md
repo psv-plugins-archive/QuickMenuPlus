@@ -1,6 +1,10 @@
 # Quick Menu Plus
 
-Power off, reboot, and suspend, all from the quick menu. For both Playstation Vita and Playstation TV. Hold the "Power Off" button to reboot.
+Quick Menu Plus adds the following features to the Quick Menu on the PlayStation Vita and PlayStation TV.
+
+- Power off and standby buttons
+- Reboot by holding the power off button
+- Volume slidebar
 
 ![preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/preview.png?h=assets)
 

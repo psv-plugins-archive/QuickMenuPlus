@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <string.h>
 
+#include <psp2/avconfig.h>
 #include <psp2/kernel/clib.h>
 #include <psp2/kernel/modulemgr.h>
 #include <psp2/shellsvc.h>
@@ -34,6 +35,10 @@ extern void ScePafWidget_16479BA7(int, int, int);
 	if ((x) < 0) { goto fail; }\
 } while (0)
 
+#define RLZ(x) do {\
+	if ((x) < 0) { return (x); }\
+} while(0)
+
 #define RNE(x, k) do {\
 	if ((x) != (k)) { return -1; }\
 } while(0)
@@ -44,16 +49,18 @@ extern void ScePafWidget_16479BA7(int, int, int);
 #define HOOK_OFFSET(idx, modid, offset, thumb, func)\
 	(hook_id[idx] = taiHookFunctionOffset(hook_ref+idx, modid, 0, offset, thumb, func##_hook))
 
-#define N_INJECT 1
+#define N_INJECT 2
 static SceUID inject_id[N_INJECT];
 
-#define N_HOOK 1
+#define N_HOOK 5
 static SceUID hook_id[N_HOOK];
 static tai_hook_ref_t hook_ref[N_HOOK];
 
 typedef void btn_cb(void);
+typedef int set_slidebar_pos(int, int, int);
 
 static btn_cb *poweroff_btn_cb;
+static int (*vol_widget_init)(int, int);
 
 static int decode_bl_t1(int bl, int *imm) {
 	// split into two shorts
@@ -75,6 +82,30 @@ static int decode_bl_t1(int bl, int *imm) {
 
 	// combine to 25 bits and sign extend
 	*imm = (S << 31) | (I1 << 30) | (I2 << 29) | (imm10 << 19) | (imm11 << 8);
+	*imm >>= 7;
+	return 0;
+}
+
+static int decode_blx_t2(int blx, int *imm) {
+	// split into two shorts
+	short blx_1 = blx & 0xFFFF;
+	short blx_2 = (blx >> 16) & 0xFFFF;
+
+	// verify the form
+	RNE(blx_1 & 0xF800, 0xF000);
+	RNE(blx_2 & 0xD001, 0xC000);
+
+	// decode
+	int S = (blx_1 & 0x0400) >> 10;
+	int J1 = (blx_2 & 0x2000) >> 13;
+	int J2 = (blx_2 & 0x0800) >> 11;
+	int I1 = ~(J1 ^ S) & 1;
+	int I2 = ~(J2 ^ S) & 1;
+	int imm10H = blx_1 & 0x03FF;
+	int imm10L = (blx_2 & 0x07FE) >> 1;
+
+	// combine to 25 bits and sign extend
+	*imm = (S << 31) | (I1 << 30) | (I2 << 29) | (imm10H << 19) | (imm10L << 9);
 	*imm >>= 7;
 	return 0;
 }
@@ -137,6 +168,44 @@ static void btn_init_hook(int r0, int r1, btn_cb *r2, int r3) {
 	} else {
 		TAI_NEXT(btn_init_hook, hook_ref[0], r0, r1, r2, r3);
 	}
+}
+
+// cannot TAI_NEXT due to lack of relocation by taiHEN
+static int vol_slidebar_cb_hook(int r0) {
+	int obj = *(int*)(r0 + 0x8);
+	int vptr = *(int*)obj;
+	int pos = *(int*)(obj + 0x294);
+
+	SceUInt32 ctrl;
+	SceBool muted, avls;
+	RLZ(sceAVConfigGetVolCtrlEnable(&ctrl, &muted, &avls));
+	if (avls && pos > SCE_AVCONFIG_VOLUME_AVLS_MAX) {
+		pos = SCE_AVCONFIG_VOLUME_AVLS_MAX;
+		RLZ(sceAVConfigSetSystemVol(pos));
+		(**(set_slidebar_pos**)(vptr + 0x188))(obj, pos, 0);
+	} else {
+		RLZ(sceAVConfigSetSystemVol(pos));
+	}
+
+	return 0;
+}
+
+static int sceAVConfigGetMasterVol_hook(int *v) {
+	TAI_NEXT(sceAVConfigGetMasterVol_hook, hook_ref[2], v);
+	return sceAVConfigGetSystemVol(v);
+}
+
+static int sceAVConfigWriteMasterVol_hook(void) {
+	TAI_NEXT(sceAVConfigWriteMasterVol_hook, hook_ref[3]);
+
+	int vol;
+	RLZ(sceAVConfigGetSystemVol(&vol));
+	return sceAVConfigWriteRegSystemVol(vol);
+}
+
+static int music_widget_init_hook(int r0, int r1) {
+	vol_widget_init(r0 + 0x40, r1);
+	return TAI_NEXT(music_widget_init_hook, hook_ref[4], r0, r1);
 }
 
 static void startup(void) {
@@ -218,6 +287,52 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 	if (!vshSblAimgrIsDolce()) {
 		// enable power widget (cmp r0, r0)
 		GLZ(INJECT_ABS(0, (void*)(quick_menu_init + 0x44E), "\x80\x42", 2));
+
+		// volume widget
+		// template ID 84E0F33A from impose_plugin.rco
+
+		// addr of branch to vol_widget_init from quick_menu_init
+		int vol_widget_init_bl = quick_menu_init + 0xC1E;
+
+		// addr of the function vol_widget_init
+		GLZ(decode_bl_t1(*(int*)vol_widget_init_bl, (int*)&vol_widget_init));
+		vol_widget_init += vol_widget_init_bl + 4;
+
+		// addr of pointer to vol_slidebar_cb
+		int ptr_vol_slidebar_cb;
+		GLZ(decode_movw_t3(*(int*)(vol_widget_init + 0x1E0), &ptr_vol_slidebar_cb));
+		GLZ(decode_movt_t1(*(int*)(vol_widget_init + 0x1E6), &ptr_vol_slidebar_cb));
+
+		// addr of vol_slidebar_cb
+		int vol_slidebar_cb = *(int*)ptr_vol_slidebar_cb;
+
+		// addr of SceAVConfig imports
+		// These are hooked by import due to NID poisoning of SceShell
+		// in non-Enso environment.
+		int sceAVConfigGetMasterVol, sceAVConfigWriteMasterVol;
+		GLZ(decode_blx_t2(*(int*)(vol_widget_init + 0x346), &sceAVConfigGetMasterVol));
+		unsigned int pc = (unsigned int)vol_widget_init + 0x346 + 0x4;
+		sceAVConfigGetMasterVol += pc - (pc % 4);
+		sceAVConfigWriteMasterVol = sceAVConfigGetMasterVol - 0x80;
+
+		// set Thumb bit because we will call this function
+		vol_widget_init = (void*)((int)vol_widget_init | 1);
+
+		// addr of branch to music_widget_init from quick_menu_init
+		int music_widget_init_bl = quick_menu_init + 0x1006;
+
+		// addr of the function music_widget_init
+		int music_widget_init;
+		GLZ(decode_bl_t1(*(int*)music_widget_init_bl, &music_widget_init));
+		music_widget_init += music_widget_init_bl + 4;
+
+		// disable original call to vol_widget_init just in case (mov.w r0, #0)
+		GLZ(INJECT_ABS(1, (void*)vol_widget_init_bl, "\x4f\xf0\x00\x00", 4));
+
+		GLZ(HOOK_OFFSET(1, minfo.modid, vol_slidebar_cb - seg0, 1, vol_slidebar_cb));
+		GLZ(HOOK_OFFSET(2, minfo.modid, sceAVConfigGetMasterVol - seg0, 0, sceAVConfigGetMasterVol));
+		GLZ(HOOK_OFFSET(3, minfo.modid, sceAVConfigWriteMasterVol - seg0, 0, sceAVConfigWriteMasterVol));
+		GLZ(HOOK_OFFSET(4, minfo.modid, music_widget_init - seg0, 1, music_widget_init));
 	}
 
 	return SCE_KERNEL_START_SUCCESS;
