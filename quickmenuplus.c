@@ -21,6 +21,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <psp2/avconfig.h>
 #include <psp2/kernel/clib.h>
 #include <psp2/kernel/modulemgr.h>
+#include <psp2/paf.h>
+#include <psp2/registrymgr.h>
 #include <psp2/shellsvc.h>
 #include <psp2/vshbridge.h>
 
@@ -46,9 +48,35 @@ static tai_hook_ref_t hook_ref[N_HOOK];
 
 typedef void btn_cb(void);
 typedef int set_slidebar_pos(int, int, int);
+typedef int set_label(int, ScePafWString*);
 
 static btn_cb *poweroff_btn_cb;
 static int (*vol_widget_init)(int, int);
+
+#define N_LANG 20
+
+static const char *poweroff_btn_label[N_LANG] = {
+	u8"電源を切る・再起動",
+	u8"Power Off・Restart",
+	u8"Éteindre・Redémarrer",
+	u8"Apagar・Reiniciar",
+	u8"Ausschalten・Neustarten",
+	u8"Spegni・Riavvio",
+	u8"Uitschakelen・Start opnieuw op",
+	u8"Desligar・Reiniciar",
+	u8"Выключить・Перезагрузка",
+	u8"전원 끄기・재부팅",
+	u8"關閉電源・重新啟動",
+	u8"关闭电源・重新启動",
+	u8"Katkaise virta・Käynnistä uudelleen",
+	u8"Stäng av・Starta om",
+	u8"Sluk・Genstart",
+	u8"Slå av・Starte på nytt",
+	u8"Wyłącz・Uruchom ponownie",
+	u8"Desligar・Reiniciar",
+	u8"Power Off・Restart",
+	u8"Kapat・Yeniden başlatmak",
+};
 
 static void poweroff_btn_hold_cb(void) {
 	sceShellUtilRequestColdReset(0);
@@ -56,6 +84,19 @@ static void poweroff_btn_hold_cb(void) {
 
 static void btn_init_hook(int r0, int r1, btn_cb *r2, int r3) {
 	if (r1 == 0x10000008 && r2 == poweroff_btn_cb) {
+		// Set poweroff button label
+		int lang;
+		if (0 == sceRegMgrUtilityGetInt(0x37502, &lang) && lang < N_LANG) {
+			ScePafWString *wlabel = scePafCesUtf8CharToUtf16WithAlloc(poweroff_btn_label[lang], NULL);
+			if (wlabel && wlabel->data) {
+				(**(set_label**)(*(int*)r0 + 0x11C))(r0, wlabel);
+				sce_paf_free(wlabel->data);
+			}
+			if (wlabel) {
+				sce_paf_free(wlabel);
+			}
+		}
+
 		// set holdable button with threshold 200ms
 		// and repeat threshold 800ms
 		ScePafWidget_16479BA7(r0, 200, 800);

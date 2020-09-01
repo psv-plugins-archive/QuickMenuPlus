@@ -4,6 +4,7 @@
 
 - Merged Quick Power, Quick Volume, and Rapidmenu
 - Support testkit firmware 3.60
+- Added "Restart" text to poweroff button (20 languages)
 
 ### Changelog - Quick Power
 

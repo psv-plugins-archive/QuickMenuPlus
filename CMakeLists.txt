@@ -22,7 +22,7 @@ include("${DOLCESDK_CMAKE_FILE}" REQUIRED)
 project(quickmenuplus LANGUAGES C)
 
 add_compile_options(
-  -Os -std=c99
+  -Os -std=c11
   -Wall -Wextra -Wdouble-promotion -Wshadow -Wundef
   -fsingle-precision-constant -fno-common -flto
 )
@@ -56,7 +56,9 @@ target_link_libraries("${ELF}"
   SceAVConfig_stub
   SceKernelModulemgr_stub
   SceLibKernel_stub
+  ScePaf_stub_weak
   ScePaf2_stub_weak
+  SceRegistryMgr_stub
   SceShellSvc_stub_weak
   SceVshBridge_stub
 )
