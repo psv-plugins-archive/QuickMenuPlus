@@ -47,6 +47,7 @@ set(MODULE_INFO "quickmenuplus.yml")
 
 add_executable("${ELF}"
   quickmenuplus.c
+  config.c
   opcode.c
 )
 

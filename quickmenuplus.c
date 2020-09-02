@@ -29,6 +29,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <taihen.h>
 
 #include "common.h"
+#include "config.h"
 #include "opcode.h"
 
 extern void ScePafWidget_16479BA7(int, int, int);
@@ -167,7 +168,10 @@ static void cleanup(void) {
 USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 	startup();
 
-	vshPowerSetPsButtonPushTime(200 * 1000);
+	int pushtime = config_read_key("pushtime");
+	if (pushtime) {
+		vshPowerSetPsButtonPushTime(pushtime);
+	}
 
 	// get SceShell module info
 	tai_module_info_t minfo;

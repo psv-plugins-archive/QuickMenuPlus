@@ -2,12 +2,12 @@
 
 Quick Menu Plus adds the following features to the Quick Menu on the PlayStation Vita and PlayStation TV.
 
-- Power off and standby buttons
-- Reboot by holding the power off button
-- Volume slidebar
-- Reduce Quick Menu open time from 2 seconds to 200 milliseconds
+- Power off and standby buttons for Vita
+- Restart by holding the power off button
+- Volume slidebar for Vita
+- Configurable Quick Menu PS button push time
 
-![preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/preview.png?h=assets)
+![preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/preview-small.png?h=assets)
 
 ## Installation
 
@@ -23,6 +23,12 @@ Install under `*main` of your taiHEN config.
 *main
 ur0:/tai/quickmenuplus.suprx
 ```
+
+## Configuration
+
+Put files in the directory `ur0:/data/quickmenuplus` to configure Quick Menu Plus.
+
+- `pushtime.txt` sets the Quick Menu PS button push time. Put in the file the desired push time in microseconds. For example, put `250000` for 250 milliseconds. If the file does not exist, the push time is unchanged.
 
 ## Contributing
 
