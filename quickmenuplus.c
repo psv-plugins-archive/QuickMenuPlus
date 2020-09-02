@@ -31,8 +31,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "common.h"
 #include "config.h"
 #include "opcode.h"
-
-extern void ScePafWidget_16479BA7(int, int, int);
+#include "scepaf.h"
 
 #define INJECT_ABS(idx, dest, data, size)\
 	(inject_id[idx] = taiInjectAbs(dest, data, size))
@@ -49,7 +48,6 @@ static tai_hook_ref_t hook_ref[N_HOOK];
 
 typedef void btn_cb(void);
 typedef int set_slidebar_pos(int, int, int);
-typedef int set_label(int, ScePafWString*);
 
 static btn_cb *poweroff_btn_cb;
 static int (*vol_widget_init)(int, int);
@@ -83,14 +81,14 @@ static void poweroff_btn_hold_cb(void) {
 	sceShellUtilRequestColdReset(0);
 }
 
-static void btn_init_hook(int r0, int r1, btn_cb *r2, int r3) {
+static void btn_init_hook(ScePafWidget *widget, int r1, btn_cb *r2, int r3) {
 	if (r1 == 0x10000008 && r2 == poweroff_btn_cb) {
 		// Set poweroff button label
 		int lang;
 		if (0 == sceRegMgrUtilityGetInt(0x37502, &lang) && lang < N_LANG) {
 			ScePafWString *wlabel = scePafCesUtf8CharToUtf16WithAlloc(poweroff_btn_label[lang], NULL);
 			if (wlabel && wlabel->data) {
-				(**(set_label**)(*(int*)r0 + 0x11C))(r0, wlabel);
+				widget->vptr->set_label(widget, wlabel);
 				sce_paf_free(wlabel->data);
 			}
 			if (wlabel) {
@@ -100,15 +98,15 @@ static void btn_init_hook(int r0, int r1, btn_cb *r2, int r3) {
 
 		// set holdable button with threshold 200ms
 		// and repeat threshold 800ms
-		ScePafWidget_16479BA7(r0, 200, 800);
+		ScePafWidget_16479BA7(widget, 200, 800);
 
-		TAI_NEXT(btn_init_hook, hook_ref[0], r0, r1, r2, r3);
-		TAI_NEXT(btn_init_hook, hook_ref[0], r0, 0x10000005, poweroff_btn_hold_cb, r3);
+		TAI_NEXT(btn_init_hook, hook_ref[0], widget, r1, r2, r3);
+		TAI_NEXT(btn_init_hook, hook_ref[0], widget, 0x10000005, poweroff_btn_hold_cb, r3);
 
 		// set holdable with physical button
-		*(char*)(r0 + 0x197) &= 0xFD;
+		widget->flags &= 0xFD;
 	} else {
-		TAI_NEXT(btn_init_hook, hook_ref[0], r0, r1, r2, r3);
+		TAI_NEXT(btn_init_hook, hook_ref[0], widget, r1, r2, r3);
 	}
 }
 

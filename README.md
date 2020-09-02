@@ -41,4 +41,4 @@ Use [git-format-patch](https://www.git-scm.com/docs/git-format-patch) or [git-re
 
 ## Credits
 
-- Princess-of-Sleeping: Tip for SceShellUtil
+- Princess-of-Sleeping: Tip for SceShellUtil, ScePaf
