@@ -49,7 +49,6 @@ static tai_hook_ref_t hook_ref[N_HOOK];
 typedef void btn_cb(void);
 typedef int set_slidebar_pos(int, int, int);
 
-static btn_cb *poweroff_btn_cb;
 static int (*vol_widget_init)(int, int);
 
 #define N_LANG 20
@@ -81,8 +80,8 @@ static void poweroff_btn_hold_cb(void) {
 	sceShellUtilRequestColdReset(0);
 }
 
-static void btn_init_hook(ScePafWidget *widget, int r1, btn_cb *r2, int r3) {
-	if (r1 == 0x10000008 && r2 == poweroff_btn_cb) {
+static void btn_init_hook(ScePafWidget *widget, int cb_type, btn_cb *cb, int r3) {
+	if (widget->id == 0xCCD55012 && cb_type == 0x10000008) {
 		// Set poweroff button label
 		int lang;
 		if (0 == sceRegMgrUtilityGetInt(0x37502, &lang) && lang < N_LANG) {
@@ -100,13 +99,13 @@ static void btn_init_hook(ScePafWidget *widget, int r1, btn_cb *r2, int r3) {
 		// and repeat threshold 800ms
 		ScePafWidget_16479BA7(widget, 200, 800);
 
-		TAI_NEXT(btn_init_hook, hook_ref[0], widget, r1, r2, r3);
+		TAI_NEXT(btn_init_hook, hook_ref[0], widget, cb_type, cb, r3);
 		TAI_NEXT(btn_init_hook, hook_ref[0], widget, 0x10000005, poweroff_btn_hold_cb, r3);
 
 		// set holdable with physical button
 		widget->flags &= 0xFD;
 	} else {
-		TAI_NEXT(btn_init_hook, hook_ref[0], widget, r1, r2, r3);
+		TAI_NEXT(btn_init_hook, hook_ref[0], widget, cb_type, cb, r3);
 	}
 }
 
@@ -217,10 +216,6 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 
 	// addr of branch to btn_init from quick_menu_init
 	int btn_init_bl = quick_menu_init + 0x5B8;
-
-	// addr of the function poweroff_btn_cb
-	GLZ(decode_movw_t3(*(int*)(btn_init_bl - 0x12), (int*)&poweroff_btn_cb));
-	GLZ(decode_movt_t1(*(int*)(btn_init_bl - 0x0C), (int*)&poweroff_btn_cb));
 
 	// addr of the function btn_init
 	int btn_init;
