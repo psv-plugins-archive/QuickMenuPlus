@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <stdbool.h>
 #include <string.h>
 
 #include <psp2/avconfig.h>
@@ -76,34 +77,71 @@ static const char *poweroff_btn_label[N_LANG] = {
 	u8"Kapat・Yeniden başlatmak",
 };
 
-static void poweroff_btn_hold_cb(void) {
+static const char *standby_btn_label[N_LANG] = {
+	u8"再起動",
+	u8"Restart",
+	u8"Redémarrer",
+	u8"Reiniciar",
+	u8"Neustarten",
+	u8"Riavvio",
+	u8"Start opnieuw op",
+	u8"Reiniciar",
+	u8"Перезагрузка",
+	u8"재부팅",
+	u8"重新啟動",
+	u8"重新启動",
+	u8"Käynnistä uudelleen",
+	u8"Starta om",
+	u8"Genstart",
+	u8"Starte på nytt",
+	u8"Uruchom ponownie",
+	u8"Reiniciar",
+	u8"Restart",
+	u8"Yeniden başlatmak",
+};
+
+static bool standby_is_restart = false;
+
+static void request_cold_reset(void) {
 	sceShellUtilRequestColdReset(0);
 }
 
-static void btn_init_hook(ScePafWidget *widget, int cb_type, btn_cb *cb, int r3) {
-	if (widget->id == 0xCCD55012 && cb_type == 0x10000008) {
-		// Set poweroff button label
-		int lang;
-		if (0 == sceRegMgrUtilityGetInt(0x37502, &lang) && lang < N_LANG) {
-			ScePafWString *wlabel = scePafCesUtf8CharToUtf16WithAlloc(poweroff_btn_label[lang], NULL);
-			if (wlabel && wlabel->data) {
-				widget->vptr->set_label(widget, wlabel);
-				sce_paf_free(wlabel->data);
-			}
-			if (wlabel) {
-				sce_paf_free(wlabel);
-			}
+static void set_btn_label(ScePafWidget *widget, const char **labels) {
+	int lang;
+	if (0 == sceRegMgrUtilityGetInt(0x37502, &lang) && lang < N_LANG) {
+		ScePafWString *wlabel = scePafCesUtf8CharToUtf16WithAlloc(labels[lang], NULL);
+		if (wlabel && wlabel->data) {
+			widget->vptr->set_label(widget, wlabel);
+			sce_paf_free(wlabel->data);
 		}
+		if (wlabel) {
+			sce_paf_free(wlabel);
+		}
+	}
+}
+
+static void btn_init_hook(ScePafWidget *widget, int cb_type, btn_cb *cb, int r3) {
+
+	// standby button
+	if (standby_is_restart && widget->id == 0xC6D3C5FB && cb_type == 0x10000008) {
+		set_btn_label(widget, standby_btn_label);
+		TAI_NEXT(btn_init_hook, hook_ref[0], widget, cb_type, request_cold_reset, r3);
+
+	// poweroff button
+	} else if (!standby_is_restart && widget->id == 0xCCD55012 && cb_type == 0x10000008) {
+		set_btn_label(widget, poweroff_btn_label);
 
 		// set holdable button with threshold 200ms
 		// and repeat threshold 800ms
 		ScePafWidget_16479BA7(widget, 200, 800);
 
 		TAI_NEXT(btn_init_hook, hook_ref[0], widget, cb_type, cb, r3);
-		TAI_NEXT(btn_init_hook, hook_ref[0], widget, 0x10000005, poweroff_btn_hold_cb, r3);
+		TAI_NEXT(btn_init_hook, hook_ref[0], widget, 0x10000005, request_cold_reset, r3);
 
 		// set holdable with physical button
 		widget->flags &= 0xFD;
+
+	// other buttons
 	} else {
 		TAI_NEXT(btn_init_hook, hook_ref[0], widget, cb_type, cb, r3);
 	}
@@ -169,6 +207,8 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 	if (pushtime) {
 		vshPowerSetPsButtonPushTime(pushtime);
 	}
+
+	standby_is_restart = config_read_key("standbyisrestart");
 
 	// get SceShell module info
 	tai_module_info_t minfo;

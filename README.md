@@ -3,7 +3,7 @@
 Quick Menu Plus adds the following features to the Quick Menu on the PlayStation Vita and PlayStation TV.
 
 - Power off and standby buttons for Vita
-- Restart by holding the power off button
+- Restart from the Quick Menu
 - Volume slidebar for Vita
 - Configurable Quick Menu PS button push time
 
@@ -29,6 +29,10 @@ ur0:/tai/quickmenuplus.suprx
 Put files in the directory `ur0:/data/quickmenuplus` to configure Quick Menu Plus.
 
 - `pushtime.txt` sets the Quick Menu PS button push time. Put in the file the desired push time in microseconds. For example, put `250000` for 250 milliseconds. If the file does not exist, the push time is unchanged.
+
+- `standbyisrestart.txt` sets the standby button to function as a restart button. Put in the file `1` to enable, or `0` to disable. If the file does not exist, the default is disable.
+
+    ![standbyisrestart-preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/standbyisrestart-preview-small.png?h=assets)
 
 ## Contributing
 
