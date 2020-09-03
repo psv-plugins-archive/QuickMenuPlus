@@ -7,6 +7,7 @@
 - Added "Restart" text to poweroff button (20 languages)
 - Configurable Quick Menu PS button push time
 - Option to restart with the standby button
+- Fixed a bug where SceShell's internal state becomes inconsistent
 
 ### Changelog - Quick Power
 

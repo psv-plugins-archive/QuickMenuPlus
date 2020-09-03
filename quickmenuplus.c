@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <string.h>
 
@@ -43,7 +44,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define N_INJECT 2
 static SceUID inject_id[N_INJECT];
 
-#define N_HOOK 5
+#define N_HOOK 6
 static SceUID hook_id[N_HOOK];
 static tai_hook_ref_t hook_ref[N_HOOK];
 
@@ -101,6 +102,8 @@ static const char *standby_btn_label[N_LANG] = {
 };
 
 static bool standby_is_restart = false;
+
+static atomic_int system_volume;
 
 static void request_cold_reset(void) {
 	sceShellUtilRequestColdReset(0);
@@ -163,6 +166,7 @@ static int vol_slidebar_cb_hook(int r0) {
 	} else {
 		RLZ(sceAVConfigSetSystemVol(pos));
 	}
+	atomic_store(&system_volume, pos);
 
 	return 0;
 }
@@ -185,10 +189,21 @@ static int music_widget_init_hook(int r0, int r1) {
 	return TAI_NEXT(music_widget_init_hook, hook_ref[4], r0, r1);
 }
 
+// For reference on the function this function is hooking,
+// see https://git.shotatoshounenwachigau.moe/vita/jav
+static int process_volume_hook(int *audio_info, void *button_info) {
+	int sys_vol = atomic_exchange(&system_volume, -1);
+	if (sys_vol >= 0) {
+		audio_info[5] = sys_vol;
+	}
+	return TAI_NEXT(process_volume_hook, hook_ref[5], audio_info, button_info);
+}
+
 static void startup(void) {
 	sceClibMemset(inject_id, 0xFF, sizeof(inject_id));
 	sceClibMemset(hook_id, 0xFF, sizeof(hook_id));
 	sceClibMemset(hook_ref, 0xFF, sizeof(hook_ref));
+	atomic_init(&system_volume, -1);
 }
 
 static void cleanup(void) {
@@ -313,6 +328,7 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 		GLZ(HOOK_OFFSET(2, minfo.modid, sceAVConfigGetMasterVol - seg0, 0, sceAVConfigGetMasterVol));
 		GLZ(HOOK_OFFSET(3, minfo.modid, sceAVConfigWriteMasterVol - seg0, 0, sceAVConfigWriteMasterVol));
 		GLZ(HOOK_OFFSET(4, minfo.modid, music_widget_init - seg0, 1, music_widget_init));
+		GLZ(HOOK_OFFSET(5, minfo.modid, quick_menu_init - 0x6FE6 - seg0, 1, process_volume));
 	}
 
 	return SCE_KERNEL_START_SUCCESS;
