@@ -21,6 +21,19 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <psp2/paf.h>
 
+typedef struct ScePafStyleVTable ScePafStyleVTable;
+
+typedef struct ScePafStyle {
+	ScePafStyleVTable *vptr;
+	// size is unknown
+} ScePafStyle;
+
+typedef struct ScePafStyleVTable {
+	char unk_0x0[0x30];
+	void (*set_colour)(ScePafStyle*, float*);
+	// size is unknown
+} ScePafStyleVTable;
+
 typedef struct ScePafWidgetVTable ScePafWidgetVTable;
 
 typedef struct ScePafWidget {
@@ -33,7 +46,9 @@ typedef struct ScePafWidget {
 } ScePafWidget;
 
 typedef struct ScePafWidgetVTable {
-	char unk[0x11C];
+	char unk_0x0[0xF8];
+	ScePafStyle *(*get_style_obj)(ScePafWidget*, int);
+	char unk_0xFC[0x20];
 	int (*set_label)(ScePafWidget*, ScePafWString*);
 	// size is unknown
 } ScePafWidgetVTable;

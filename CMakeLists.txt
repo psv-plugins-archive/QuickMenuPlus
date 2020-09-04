@@ -25,6 +25,7 @@ add_compile_options(
   -Os -std=c11
   -Wall -Wextra -Wdouble-promotion -Wshadow -Wundef
   -fsingle-precision-constant -fno-common -flto
+  -ftree-vectorize -funsafe-math-optimizations
 )
 
 add_link_options(

@@ -123,16 +123,33 @@ static void set_btn_label(ScePafWidget *widget, const char **labels) {
 	}
 }
 
+static void set_btn_colour(ScePafWidget *widget, SceUInt32 colour) {
+	float _colour[4] = {
+		(float)((colour >> 0x18) & 0xFF) / 255.0,
+		(float)((colour >> 0x10) & 0xFF) / 255.0,
+		(float)((colour >> 0x08) & 0xFF) / 255.0,
+		(float)((colour >> 0x00) & 0xFF) / 255.0,
+	};
+
+	// style objs are indexed in the order they appear in the RCO XML
+	ScePafStyle *plane_obj = widget->vptr->get_style_obj(widget, 0);
+	if (plane_obj) {
+		plane_obj->vptr->set_colour(plane_obj, _colour);
+	}
+}
+
 static void btn_init_hook(ScePafWidget *widget, int cb_type, btn_cb *cb, int r3) {
 
 	// standby button
 	if (standby_is_restart && widget->id == 0xC6D3C5FB && cb_type == 0x10000008) {
 		set_btn_label(widget, standby_btn_label);
+		set_btn_colour(widget, 0x156AA2FF);
 		TAI_NEXT(btn_init_hook, hook_ref[0], widget, cb_type, request_cold_reset, r3);
 
 	// poweroff button
 	} else if (!standby_is_restart && widget->id == 0xCCD55012 && cb_type == 0x10000008) {
 		set_btn_label(widget, poweroff_btn_label);
+		set_btn_colour(widget, 0xCC8F00FF);
 
 		// set holdable button with threshold 200ms
 		// and repeat threshold 800ms
