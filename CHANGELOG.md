@@ -8,6 +8,7 @@
 - Configurable Quick Menu PS button push time
 - Option to restart with the standby button
 - Fixed a bug where SceShell's internal state becomes inconsistent
+- Many visual enhancements
 
 ### Changelog - Quick Power
 

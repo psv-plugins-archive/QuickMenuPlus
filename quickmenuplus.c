@@ -51,7 +51,7 @@ static tai_hook_ref_t hook_ref[N_HOOK];
 typedef void btn_cb(void);
 typedef int set_slidebar_pos(int, int, int);
 
-static int (*vol_widget_init)(int, int);
+static int (*vol_widget_init)(int, ScePafWidget*);
 
 #define N_LANG 20
 
@@ -86,13 +86,21 @@ static void request_cold_reset(void) {
 	sceShellUtilRequestColdReset(0);
 }
 
-static void set_btn_label(ScePafWidget *widget, SceWChar16 *label) {
-	ScePafWString wlabel = {label, sce_paf_wcslen(label)};
-	widget->vptr->set_label(widget, &wlabel);
+static void set_widget_labelf(ScePafWidget *widget, const SceWChar16 *fmt, ...) {
+	SceWChar16 *buf = sce_paf_malloc(0x100 * sizeof(SceWChar16));
+	if (buf) {
+		va_list args;
+		va_start(args, fmt);
+		sce_paf_vswprintf(buf, 0x100, fmt, args);
+		va_end(args);
 
-	// Always free wlabel.data, because the original pointer
-	// might already have been freed.
-	sce_paf_free(wlabel.data);
+		ScePafWString wlabel = {buf, sce_paf_wcslen(buf)};
+		widget->vptr->set_label(widget, &wlabel);
+
+		// Always free wlabel.data, because the original pointer
+		// might already have been freed.
+		sce_paf_free(wlabel.data);
+	}
 }
 
 static const SceWChar16 *get_text_lang(const SceWChar16 **texts) {
@@ -121,6 +129,11 @@ static const SceWChar16 *get_label(SceUInt32 id, const SceWChar16 *default_label
 	return ret;
 }
 
+static ScePafWidget *get_widget(ScePafWidget *parent, SceUInt32 id) {
+	ScePafResourceSearchParam param = {NULL, 0, 0, id};
+	return scePafWidgetFindById(parent, &param, 0);
+}
+
 static void set_btn_colour(ScePafWidget *widget, SceUInt32 colour) {
 	float _colour[4] = {
 		(float)((colour >> 0x18) & 0xFF) / 255.0,
@@ -136,27 +149,36 @@ static void set_btn_colour(ScePafWidget *widget, SceUInt32 colour) {
 	}
 }
 
+static void set_power_text(ScePafWidget *parent) {
+	ScePafWidget *box_widget = get_widget(parent, QUICK_MENU_BOX_ID);
+	if (box_widget) {
+		ScePafWidget *text_widget = get_widget(box_widget, POWER_TEXT_ID);
+		if (text_widget) {
+			set_widget_labelf(text_widget, u"%s\xF8EB", get_label(POWER_LABEL_ID, u""));
+		}
+	}
+}
+
+static void set_volume_text(ScePafWidget *parent) {
+	ScePafWidget *text_widget = get_widget(parent, VOLUME_TEXT_ID);
+	if (text_widget) {
+		set_widget_labelf(text_widget, u"%s\xF8EB", get_label(VOLUME_LABEL_ID, u""));
+	}
+}
+
 static void btn_init_hook(ScePafWidget *widget, int cb_type, btn_cb *cb, int r3) {
 
 	if (standby_is_restart && widget->id == STANDBY_BUTTON_ID && cb_type == 0x10000008) {
+		set_power_text(((ScePafWidget**)r3)[1]);
 
-		SceWChar16 *buf = sce_paf_malloc(0x100 * sizeof(SceWChar16));
-		if (buf) {
-			sce_paf_swprintf(buf, 0x100, u"%s", get_text_lang(restart_text));
-			set_btn_label(widget, buf);
-		}
-
+		set_widget_labelf(widget, u"%s", get_text_lang(restart_text));
 		set_btn_colour(widget, 0x156AA2FF);
 		TAI_NEXT(btn_init_hook, hook_ref[0], widget, cb_type, request_cold_reset, r3);
 
 	} else if (!standby_is_restart && widget->id == POWEROFF_BUTTON_ID && cb_type == 0x10000008) {
+		set_power_text(((ScePafWidget**)r3)[1]);
 
-		SceWChar16 *buf = sce_paf_malloc(0x100 * sizeof(SceWChar16));
-		if (buf) {
-			sce_paf_swprintf(buf, 0x100, u"%s・%s", get_label(POWEROFF_LABEL_ID, u""), get_text_lang(restart_text));
-			set_btn_label(widget, buf);
-		}
-
+		set_widget_labelf(widget, u"%s・%s", get_label(POWEROFF_LABEL_ID, u""), get_text_lang(restart_text));
 		set_btn_colour(widget, 0xCC8F00FF);
 
 		// set holdable button with threshold 200ms and repeat threshold 800ms
@@ -207,9 +229,10 @@ static int sceAVConfigWriteMasterVol_hook(void) {
 	return sceAVConfigWriteRegSystemVol(vol);
 }
 
-static int music_widget_init_hook(int r0, int r1) {
-	vol_widget_init(r0 + 0x40, r1);
-	return TAI_NEXT(music_widget_init_hook, hook_ref[4], r0, r1);
+static int music_widget_init_hook(int r0, ScePafWidget *parent) {
+	vol_widget_init(r0 + 0x40, parent);
+	set_volume_text(parent);
+	return TAI_NEXT(music_widget_init_hook, hook_ref[4], r0, parent);
 }
 
 // For reference on the function this function is hooking,

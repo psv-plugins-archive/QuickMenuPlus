@@ -8,6 +8,7 @@ modules:
         nid: 0x073F8C68
         functions:
           scePafButtonSetRepeat: 0x16479BA7
+          scePafWidgetFindById: 0x9D304F4A
       ScePafToplevel:
         kernel: false
         nid: 0x4D9A9DD0

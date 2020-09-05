@@ -21,9 +21,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <psp2/paf.h>
 
-#define STANDBY_BUTTON_ID 0xC6D3C5FB
+#define QUICK_MENU_BOX_ID  0x0EE0C8AF
+
+#define POWER_TEXT_ID      0xC24DAB89
+#define VOLUME_TEXT_ID     0xADBEB9FF
+
+#define STANDBY_BUTTON_ID  0xC6D3C5FB
 #define POWEROFF_BUTTON_ID 0xCCD55012
-#define POWEROFF_LABEL_ID 0xFA617A89
+
+#define POWEROFF_LABEL_ID  0xFA617A89
+#define POWER_LABEL_ID     0xC75A2636
+#define VOLUME_LABEL_ID    0x33FCE3F2
 
 typedef struct ScePafStyleVTable ScePafStyleVTable;
 
@@ -71,5 +79,7 @@ void scePafButtonSetRepeat(ScePafWidget*, int, int);
 ScePafPlugin *scePafPluginGetByName(const char*);
 
 const SceWChar16 *scePafLabelFindById(ScePafPlugin*, const ScePafResourceSearchParam*);
+
+ScePafWidget *scePafWidgetFindById(ScePafWidget*, const ScePafResourceSearchParam*, int);
 
 #endif
