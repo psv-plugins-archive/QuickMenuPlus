@@ -55,50 +55,27 @@ static int (*vol_widget_init)(int, int);
 
 #define N_LANG 20
 
-static const char *poweroff_btn_label[N_LANG] = {
-	u8"電源を切る・再起動",
-	u8"Power Off・Restart",
-	u8"Éteindre・Redémarrer",
-	u8"Apagar・Reiniciar",
-	u8"Ausschalten・Neustarten",
-	u8"Spegni・Riavvio",
-	u8"Uitschakelen・Start opnieuw op",
-	u8"Desligar・Reiniciar",
-	u8"Выключить・Перезагрузка",
-	u8"전원 끄기・재부팅",
-	u8"關閉電源・重新啟動",
-	u8"关闭电源・重新启動",
-	u8"Katkaise virta・Käynnistä uudelleen",
-	u8"Stäng av・Starta om",
-	u8"Sluk・Genstart",
-	u8"Slå av・Starte på nytt",
-	u8"Wyłącz・Uruchom ponownie",
-	u8"Desligar・Reiniciar",
-	u8"Power Off・Restart",
-	u8"Kapat・Yeniden başlatmak",
-};
-
-static const char *standby_btn_label[N_LANG] = {
-	u8"再起動",
-	u8"Restart",
-	u8"Redémarrer",
-	u8"Reiniciar",
-	u8"Neustarten",
-	u8"Riavvio",
-	u8"Start opnieuw op",
-	u8"Reiniciar",
-	u8"Перезагрузка",
-	u8"재부팅",
-	u8"重新啟動",
-	u8"重新启動",
-	u8"Käynnistä uudelleen",
-	u8"Starta om",
-	u8"Genstart",
-	u8"Starte på nytt",
-	u8"Uruchom ponownie",
-	u8"Reiniciar",
-	u8"Restart",
-	u8"Yeniden başlatmak",
+static const SceWChar16 *restart_text[N_LANG] = {
+	u"再起動",
+	u"Restart",
+	u"Redémarrer",
+	u"Reiniciar",
+	u"Neustarten",
+	u"Riavvio",
+	u"Start opnieuw op",
+	u"Reiniciar",
+	u"Перезагрузка",
+	u"재부팅",
+	u"重新啟動",
+	u"重新启動",
+	u"Käynnistä uudelleen",
+	u"Starta om",
+	u"Genstart",
+	u"Starte på nytt",
+	u"Uruchom ponownie",
+	u"Reiniciar",
+	u"Restart",
+	u"Yeniden başlatmak",
 };
 
 static bool standby_is_restart = false;
@@ -109,18 +86,39 @@ static void request_cold_reset(void) {
 	sceShellUtilRequestColdReset(0);
 }
 
-static void set_btn_label(ScePafWidget *widget, const char **labels) {
+static void set_btn_label(ScePafWidget *widget, SceWChar16 *label) {
+	ScePafWString wlabel = {label, sce_paf_wcslen(label)};
+	widget->vptr->set_label(widget, &wlabel);
+
+	// Always free wlabel.data, because the original pointer
+	// might already have been freed.
+	sce_paf_free(wlabel.data);
+}
+
+static const SceWChar16 *get_text_lang(const SceWChar16 **texts) {
 	int lang;
 	if (0 == sceRegMgrUtilityGetInt(0x37502, &lang) && lang < N_LANG) {
-		ScePafWString *wlabel = scePafCesUtf8CharToUtf16WithAlloc(labels[lang], NULL);
-		if (wlabel && wlabel->data) {
-			widget->vptr->set_label(widget, wlabel);
-			sce_paf_free(wlabel->data);
-		}
-		if (wlabel) {
-			sce_paf_free(wlabel);
-		}
+		return texts[lang];
+	} else {
+		return texts[0];
 	}
+}
+
+static const SceWChar16 *get_label(SceUInt32 id, const SceWChar16 *default_label) {
+	const SceWChar16 *ret = NULL;
+
+	ScePafPlugin *impose_plugin = ScePafToplevel_004D98CC("impose_plugin");
+	if (impose_plugin) {
+		ScePafResourceSearchParam param = {NULL, 0, 0, id};
+
+		// The return value of this function should not be freed.
+		ret = ScePafToplevel_19CEFDA7(impose_plugin, &param);
+	}
+
+	if (!ret) {
+		ret = default_label;
+	}
+	return ret;
 }
 
 static void set_btn_colour(ScePafWidget *widget, SceUInt32 colour) {
@@ -142,13 +140,25 @@ static void btn_init_hook(ScePafWidget *widget, int cb_type, btn_cb *cb, int r3)
 
 	// standby button
 	if (standby_is_restart && widget->id == 0xC6D3C5FB && cb_type == 0x10000008) {
-		set_btn_label(widget, standby_btn_label);
+
+		SceWChar16 *buf = sce_paf_malloc(0x100 * sizeof(SceWChar16));
+		if (buf) {
+			sce_paf_swprintf(buf, 0x100, u"%s", get_text_lang(restart_text));
+			set_btn_label(widget, buf);
+		}
+
 		set_btn_colour(widget, 0x156AA2FF);
 		TAI_NEXT(btn_init_hook, hook_ref[0], widget, cb_type, request_cold_reset, r3);
 
 	// poweroff button
 	} else if (!standby_is_restart && widget->id == 0xCCD55012 && cb_type == 0x10000008) {
-		set_btn_label(widget, poweroff_btn_label);
+
+		SceWChar16 *buf = sce_paf_malloc(0x100 * sizeof(SceWChar16));
+		if (buf) {
+			sce_paf_swprintf(buf, 0x100, u"%s・%s", get_label(0xFA617A89, u""), get_text_lang(restart_text));
+			set_btn_label(widget, buf);
+		}
+
 		set_btn_colour(widget, 0xCC8F00FF);
 
 		// set holdable button with threshold 200ms

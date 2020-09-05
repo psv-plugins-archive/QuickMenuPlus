@@ -53,6 +53,19 @@ typedef struct ScePafWidgetVTable {
 	// size is unknown
 } ScePafWidgetVTable;
 
+typedef struct ScePafPlugin ScePafPlugin;
+
+typedef struct ScePafResourceSearchParam {
+	char *data;
+	SceSize length;
+	int unk;
+	SceUInt32 id;
+} ScePafResourceSearchParam;
+
 void ScePafWidget_16479BA7(ScePafWidget*, int, int);
+
+ScePafPlugin *ScePafToplevel_004D98CC(const char*);
+
+const SceWChar16 *ScePafToplevel_19CEFDA7(ScePafPlugin*, const ScePafResourceSearchParam*);
 
 #endif
