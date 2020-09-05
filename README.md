@@ -6,6 +6,7 @@ Quick Menu Plus adds the following features to the Quick Menu on the PlayStation
 - Restart from the Quick Menu
 - Volume slidebar for Vita
 - Configurable Quick Menu PS button push time
+- Remove gradient overlay from the Quick Menu
 
 ![preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/preview-small.png?h=assets)
 

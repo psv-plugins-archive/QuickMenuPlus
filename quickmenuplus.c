@@ -41,7 +41,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define HOOK_OFFSET(idx, modid, offset, thumb, func)\
 	(hook_id[idx] = taiHookFunctionOffset(hook_ref+idx, modid, 0, offset, thumb, func##_hook))
 
-#define N_INJECT 2
+#define N_INJECT 3
 static SceUID inject_id[N_INJECT];
 
 #define N_HOOK 6
@@ -376,6 +376,9 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 		GLZ(HOOK_OFFSET(4, minfo.modid, music_widget_init - seg0, 1, music_widget_init));
 		GLZ(HOOK_OFFSET(5, minfo.modid, quick_menu_init - 0x6FE6 - seg0, 1, process_volume));
 	}
+
+	// Disable quick menu gradient effect (cmp r0, r0)
+	GLZ(INJECT_ABS(2, (void*)(quick_menu_init + 0x186), "\x80\x42", 2));
 
 	return SCE_KERNEL_START_SUCCESS;
 
