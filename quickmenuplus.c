@@ -107,12 +107,12 @@ static const SceWChar16 *get_text_lang(const SceWChar16 **texts) {
 static const SceWChar16 *get_label(SceUInt32 id, const SceWChar16 *default_label) {
 	const SceWChar16 *ret = NULL;
 
-	ScePafPlugin *impose_plugin = ScePafToplevel_004D98CC("impose_plugin");
+	ScePafPlugin *impose_plugin = scePafPluginGetByName("impose_plugin");
 	if (impose_plugin) {
 		ScePafResourceSearchParam param = {NULL, 0, 0, id};
 
 		// The return value of this function should not be freed.
-		ret = ScePafToplevel_19CEFDA7(impose_plugin, &param);
+		ret = scePafLabelFindById(impose_plugin, &param);
 	}
 
 	if (!ret) {
@@ -138,8 +138,7 @@ static void set_btn_colour(ScePafWidget *widget, SceUInt32 colour) {
 
 static void btn_init_hook(ScePafWidget *widget, int cb_type, btn_cb *cb, int r3) {
 
-	// standby button
-	if (standby_is_restart && widget->id == 0xC6D3C5FB && cb_type == 0x10000008) {
+	if (standby_is_restart && widget->id == STANDBY_BUTTON_ID && cb_type == 0x10000008) {
 
 		SceWChar16 *buf = sce_paf_malloc(0x100 * sizeof(SceWChar16));
 		if (buf) {
@@ -150,20 +149,18 @@ static void btn_init_hook(ScePafWidget *widget, int cb_type, btn_cb *cb, int r3)
 		set_btn_colour(widget, 0x156AA2FF);
 		TAI_NEXT(btn_init_hook, hook_ref[0], widget, cb_type, request_cold_reset, r3);
 
-	// poweroff button
-	} else if (!standby_is_restart && widget->id == 0xCCD55012 && cb_type == 0x10000008) {
+	} else if (!standby_is_restart && widget->id == POWEROFF_BUTTON_ID && cb_type == 0x10000008) {
 
 		SceWChar16 *buf = sce_paf_malloc(0x100 * sizeof(SceWChar16));
 		if (buf) {
-			sce_paf_swprintf(buf, 0x100, u"%s・%s", get_label(0xFA617A89, u""), get_text_lang(restart_text));
+			sce_paf_swprintf(buf, 0x100, u"%s・%s", get_label(POWEROFF_LABEL_ID, u""), get_text_lang(restart_text));
 			set_btn_label(widget, buf);
 		}
 
 		set_btn_colour(widget, 0xCC8F00FF);
 
-		// set holdable button with threshold 200ms
-		// and repeat threshold 800ms
-		ScePafWidget_16479BA7(widget, 200, 800);
+		// set holdable button with threshold 200ms and repeat threshold 800ms
+		scePafButtonSetRepeat(widget, 200, 800);
 
 		TAI_NEXT(btn_init_hook, hook_ref[0], widget, cb_type, cb, r3);
 		TAI_NEXT(btn_init_hook, hook_ref[0], widget, 0x10000005, request_cold_reset, r3);
@@ -171,7 +168,6 @@ static void btn_init_hook(ScePafWidget *widget, int cb_type, btn_cb *cb, int r3)
 		// set holdable with physical button
 		widget->flags &= 0xFD;
 
-	// other buttons
 	} else {
 		TAI_NEXT(btn_init_hook, hook_ref[0], widget, cb_type, cb, r3);
 	}
