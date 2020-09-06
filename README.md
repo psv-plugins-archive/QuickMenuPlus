@@ -39,15 +39,33 @@ Put files in the directory `ur0:/data/quickmenuplus` to configure Quick Menu Plu
 
     ![bgstyle-preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/bgstyle-preview-small.png?h=assets)
 
+## Building
+
+Dependencies:
+
+- [DolceSDK](https://forum.devchroma.nl/index.php/topic,129.0.html)
+- [psp2dbg](https://git.shotatoshounenwachigau.moe/vita/psp2dbg)
+- [taiHEN](https://git.shotatoshounenwachigau.moe/vita/taihen)
+
+Logging can be configured with CMake variables.
+
+To build dependencies and module:
+
+```sh
+cmake .
+make dep-all
+make
+```
+
 ## Contributing
 
 Use [git-format-patch](https://www.git-scm.com/docs/git-format-patch) or [git-request-pull](https://www.git-scm.com/docs/git-request-pull) and email me at <asakurareiko@protonmail.ch>.
+
+## Credits
+
+- Princess-of-Sleeping: Tip for SceShellUtil, ScePaf
 
 ## See also
 
 - [Discussion](https://forum.devchroma.nl/index.php/topic,78.0.html)
 - [Source code](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus)
-
-## Credits
-
-- Princess-of-Sleeping: Tip for SceShellUtil, ScePaf

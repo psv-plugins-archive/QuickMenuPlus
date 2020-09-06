@@ -18,7 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include <stdatomic.h>
 #include <stdbool.h>
-#include <string.h>
 
 #include <psp2/avconfig.h>
 #include <psp2/kernel/clib.h>
@@ -28,6 +27,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include <psp2/shellsvc.h>
 #include <psp2/vshbridge.h>
 
+#include <psp2dbg.h>
 #include <taihen.h>
 
 #include "common.h"
@@ -35,18 +35,71 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #include "opcode.h"
 #include "scepaf.h"
 
-#define INJECT_ABS(idx, dest, data, size)\
-	(inject_id[idx] = taiInjectAbs(dest, data, size))
-
-#define HOOK_OFFSET(idx, modid, offset, thumb, func)\
-	(hook_id[idx] = taiHookFunctionOffset(hook_ref+idx, modid, 0, offset, thumb, func##_hook))
-
 #define N_INJECT 3
 static SceUID inject_id[N_INJECT];
 
 #define N_HOOK 7
 static SceUID hook_id[N_HOOK];
 static tai_hook_ref_t hook_ref[N_HOOK];
+
+static SceUID inject_abs(int idx, void *dest, const void *src, size_t size) {
+	SceUID ret = taiInjectAbs(dest, src, size);
+	if (ret >= 0) {
+		SCE_DBG_LOG_INFO("Injected %d UID %08X\n", idx, ret);
+		inject_id[idx] = ret;
+	} else {
+		SCE_DBG_LOG_ERROR("Failed to inject %d error %08X\n", idx, ret);
+	}
+	return ret;
+}
+#define INJECT_ABS(idx, dest, src, size)\
+	inject_abs(idx, dest, src, size)
+
+static SceUID hook_offset(int idx, SceUID mod, uint32_t ofs, int th, const void *func) {
+	SceUID ret = taiHookFunctionOffset(hook_ref + idx, mod, 0, ofs, th, func);
+	if (ret >= 0) {
+		SCE_DBG_LOG_INFO("Hooked %d UID %08X\n", idx, ret);
+		hook_id[idx] = ret;
+	} else {
+		SCE_DBG_LOG_ERROR("Failed to hook %d error %08X\n", idx, ret);
+	}
+	return ret;
+}
+#define HOOK_OFFSET(idx, mod, ofs, th, func)\
+	hook_offset(idx, mod, ofs, th, func##_hook)
+
+static int UNINJECT(int idx) {
+	int ret = 0;
+	if (inject_id[idx] >= 0) {
+		ret = taiInjectRelease(inject_id[idx]);
+		if (ret == 0) {
+			SCE_DBG_LOG_INFO("Uninjected %d UID %08X\n", idx, inject_id[idx]);
+			inject_id[idx] = -1;
+		} else {
+			SCE_DBG_LOG_ERROR("Failed to uninject %d UID %08X error %08X\n", idx, inject_id[idx], ret);
+		}
+	} else {
+		SCE_DBG_LOG_WARNING("Tried to uninject %d but not injected\n", idx);
+	}
+	return ret;
+}
+
+static int UNHOOK(int idx) {
+	int ret = 0;
+	if (hook_id[idx] >= 0) {
+		ret = taiHookRelease(hook_id[idx], hook_ref[idx]);
+		if (ret == 0) {
+			SCE_DBG_LOG_INFO("Unhooked %d UID %08X\n", idx, hook_id[idx]);
+			hook_id[idx] = -1;
+			hook_ref[idx] = -1;
+		} else {
+			SCE_DBG_LOG_ERROR("Failed to unhook %d UID %08X error %08X\n", idx, hook_id[idx], ret);
+		}
+	} else {
+		SCE_DBG_LOG_WARNING("Tried to unhook %d but not hooked\n", idx);
+	}
+	return ret;
+}
 
 typedef void btn_cb(void);
 typedef int set_slidebar_pos(int, int, int);
@@ -278,6 +331,7 @@ static void bg_plane_init_hook(ScePafWidget *r0, int r1, float *r2, float *r3) {
 }
 
 static void startup(void) {
+	SCE_DBG_FILE_LOGGING_INIT("ux0:/quickmenuplus.log");
 	sceClibMemset(inject_id, 0xFF, sizeof(inject_id));
 	sceClibMemset(hook_id, 0xFF, sizeof(hook_id));
 	sceClibMemset(hook_ref, 0xFF, sizeof(hook_ref));
@@ -285,12 +339,9 @@ static void startup(void) {
 }
 
 static void cleanup(void) {
-	for (int i = 0; i < N_INJECT; i++) {
-		if (inject_id[i] >= 0) { taiInjectRelease(inject_id[i]); }
-	}
-	for (int i = 0; i < N_HOOK; i++) {
-		if (hook_id[i] >= 0) { taiHookRelease(hook_id[i], hook_ref[i]); }
-	}
+	for (int i = 0; i < N_INJECT; i++) { UNINJECT(i); }
+	for (int i = 0; i < N_HOOK; i++) { UNHOOK(i); }
+	SCE_DBG_FILE_LOGGING_TERM();
 }
 
 USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
@@ -405,9 +456,11 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 		GLZ(HOOK_OFFSET(6, minfo.modid, bg_plane_init - seg0, 1, bg_plane_init));
 	}
 
+	SCE_DBG_LOG_INFO("module_start success\n");
 	return SCE_KERNEL_START_SUCCESS;
 
 fail:
+	SCE_DBG_LOG_ERROR("module_start failed\n");
 	cleanup();
 	return SCE_KERNEL_START_FAILED;
 }
