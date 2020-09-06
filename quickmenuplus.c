@@ -44,7 +44,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #define N_INJECT 3
 static SceUID inject_id[N_INJECT];
 
-#define N_HOOK 6
+#define N_HOOK 7
 static SceUID hook_id[N_HOOK];
 static tai_hook_ref_t hook_ref[N_HOOK];
 
@@ -78,7 +78,12 @@ static const SceWChar16 *restart_text[N_LANG] = {
 	u"Yeniden başlatmak",
 };
 
+#define BG_STYLE_ORIGINAL    0
+#define BG_STYLE_TRANSLUCENT 1
+#define BG_STYLE_BLACK       2
+
 static bool standby_is_restart = false;
+static int bg_style = BG_STYLE_ORIGINAL;
 
 static atomic_int system_volume;
 
@@ -134,19 +139,28 @@ static ScePafWidget *get_widget(ScePafWidget *parent, SceUInt32 id) {
 	return scePafWidgetFindById(parent, &param, 0);
 }
 
+static void colour_convert_rgba(float *farr, SceUInt32 rgba) {
+	farr[0] = (float)((rgba >> 0x18) & 0xFF) / 255.0;
+	farr[1] = (float)((rgba >> 0x10) & 0xFF) / 255.0;
+	farr[2] = (float)((rgba >> 0x08) & 0xFF) / 255.0;
+	farr[3] = (float)((rgba >> 0x00) & 0xFF) / 255.0;
+}
+
 static void set_btn_colour(ScePafWidget *widget, SceUInt32 colour) {
-	float _colour[4] = {
-		(float)((colour >> 0x18) & 0xFF) / 255.0,
-		(float)((colour >> 0x10) & 0xFF) / 255.0,
-		(float)((colour >> 0x08) & 0xFF) / 255.0,
-		(float)((colour >> 0x00) & 0xFF) / 255.0,
-	};
+	float _colour[4];
+	colour_convert_rgba(_colour, colour);
 
 	// style objs are indexed in the order they appear in the RCO XML
 	ScePafStyle *plane_obj = widget->vptr->get_style_obj(widget, 0);
 	if (plane_obj) {
 		plane_obj->vptr->set_colour(plane_obj, _colour);
 	}
+}
+
+static void set_widget_colour(ScePafWidget *widget, SceUInt32 colour) {
+	float _colour[4];
+	colour_convert_rgba(_colour, colour);
+	scePafWidgetSetColour(0.0, widget, _colour, 0, 0x10001, 0, 0, 0);
 }
 
 static void set_power_text(ScePafWidget *parent) {
@@ -245,6 +259,24 @@ static int process_volume_hook(int *audio_info, void *button_info) {
 	return TAI_NEXT(process_volume_hook, hook_ref[5], audio_info, button_info);
 }
 
+// This function initialises some fields of the Quick Menu background plane
+// which has ID 0xE83F6AF0. Disabling this function or using other arguments
+// did not seem to make any difference.
+// r1 - 3
+// r2 - {960.0, 544.0}
+// r3 - {0.0, 0.0}
+static void bg_plane_init_hook(ScePafWidget *r0, int r1, float *r2, float *r3) {
+	TAI_NEXT(bg_plane_init_hook, hook_ref[6], r0, r1, r2, r3);
+	switch (bg_style) {
+		case BG_STYLE_TRANSLUCENT:
+			set_widget_colour(r0, 0x282828C0);
+			break;
+		case BG_STYLE_BLACK:
+			set_widget_colour(r0, 0x000000FF);
+			break;
+	}
+}
+
 static void startup(void) {
 	sceClibMemset(inject_id, 0xFF, sizeof(inject_id));
 	sceClibMemset(hook_id, 0xFF, sizeof(hook_id));
@@ -270,6 +302,7 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 	}
 
 	standby_is_restart = config_read_key("standbyisrestart");
+	bg_style = config_read_key("bgstyle");
 
 	// get SceShell module info
 	tai_module_info_t minfo;
@@ -379,6 +412,19 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 
 	// Disable quick menu gradient effect (cmp r0, r0)
 	GLZ(INJECT_ABS(2, (void*)(quick_menu_init + 0x186), "\x80\x42", 2));
+
+	if (bg_style != BG_STYLE_ORIGINAL) {
+		// Address of branch to bg_plane_init
+		int bg_plane_init_bl = quick_menu_init + 0x12C;
+
+		// Address of the function bg_plane_init
+		int bg_plane_init;
+		GLZ(decode_bl_t1(*(int*)bg_plane_init_bl, &bg_plane_init));
+		bg_plane_init += bg_plane_init_bl + 4;
+
+		// Custom style for the Quick Menu background
+		GLZ(HOOK_OFFSET(6, minfo.modid, bg_plane_init - seg0, 1, bg_plane_init));
+	}
 
 	return SCE_KERNEL_START_SUCCESS;
 

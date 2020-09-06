@@ -82,4 +82,6 @@ const SceWChar16 *scePafLabelFindById(ScePafPlugin*, const ScePafResourceSearchP
 
 ScePafWidget *scePafWidgetFindById(ScePafWidget*, const ScePafResourceSearchParam*, int);
 
+void scePafWidgetSetColour(float, ScePafWidget*, float*, int, int, int, int, int);
+
 #endif

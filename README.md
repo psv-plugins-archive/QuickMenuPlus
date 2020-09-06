@@ -2,11 +2,11 @@
 
 Quick Menu Plus adds the following features to the Quick Menu on the PlayStation Vita and PlayStation TV.
 
-- Power off and standby buttons for Vita
-- Restart from the Quick Menu
-- Volume slidebar for Vita
-- Configurable Quick Menu PS button push time
-- Remove gradient overlay from the Quick Menu
+- Power off, restart, and standby buttons
+- Configurable power buttons
+- Volume slidebar
+- Faster Quick Menu open time
+- Custom background styles
 
 ![preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/preview-small.png?h=assets)
 
@@ -31,9 +31,13 @@ Put files in the directory `ur0:/data/quickmenuplus` to configure Quick Menu Plu
 
 - `pushtime.txt` sets the Quick Menu PS button push time. Put in the file the desired push time in microseconds. For example, put `250000` for 250 milliseconds. If the file does not exist, the push time is unchanged.
 
-- `standbyisrestart.txt` sets the standby button to function as a restart button. Put in the file `1` to enable, or `0` to disable. If the file does not exist, the default is disable.
+- `standbyisrestart.txt` sets the standby button to function as a restart button. Put in the file `1` to enable, or `0` to disable. If the file does not exist, the default is disable. When this setting is disabled, hold the "Power Off・Restart" button to restart, and press to power off.
 
     ![standbyisrestart-preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/standbyisrestart-preview-small.png?h=assets)
+
+- `bgstyle.txt` sets the background style. Put in the file `0` for original, `1` for translucent, and `2` for black. If the file does not exist, the default is original. Black can reduce power consumption for OLED screens. The gradient effect is removed in all styles.
+
+    ![bgstyle-preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/bgstyle-preview-small.png?h=assets)
 
 ## Contributing
 

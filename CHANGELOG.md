@@ -3,12 +3,11 @@
 #### v2.0.0
 
 - Merged Quick Power, Quick Volume, and Rapidmenu
-- Support testkit firmware 3.60
-- Added "Restart" text to poweroff button (20 languages)
-- Configurable Quick Menu PS button push time
-- Option to restart with the standby button
+- Configurable Quick Menu open time
+- Configurable power buttons
+- Custom background styles and other visual enhancements
 - Fixed a bug where SceShell's internal state becomes inconsistent
-- Many visual enhancements
+- Support testkit firmware 3.60
 
 ### Changelog - Quick Power
 
