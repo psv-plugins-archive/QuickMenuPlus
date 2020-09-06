@@ -77,3 +77,25 @@ int decode_movw_t3(int movw, int *imm) {
 int decode_movt_t1(int movt, int *imm) {
 	return decode_mov_common(movt, (short*)imm + 1, 0xFBF0, 0xF2C0, 0x8000, 0x0000);
 }
+
+int get_addr_bl(const int *bl, int *addr) {
+	int offset;
+	RNE(decode_bl_t1(*bl, &offset), 0);
+
+	// PC is one word ahead
+	int pc = (int)bl + 4;
+	*addr = pc + offset;
+
+	return 0;
+}
+
+int get_addr_blx(const int *blx, int *addr) {
+	int offset;
+	RNE(decode_blx_t2(*blx, &offset), 0);
+
+	// PC is one word ahead and aligned backwards to word boundary
+	unsigned int pc = (unsigned int)blx + 4;
+	*addr = pc - (pc % 4) + offset;
+
+	return 0;
+}

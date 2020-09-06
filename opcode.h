@@ -26,4 +26,8 @@ int decode_movw_t3(int movw, int *imm);
 
 int decode_movt_t1(int movt, int *imm);
 
+int get_addr_bl(const int *bl, int *addr);
+
+int get_addr_blx(const int *blx, int *addr);
+
 #endif

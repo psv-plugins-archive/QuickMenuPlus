@@ -348,14 +348,9 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 	// power widget
 	// template ID FAE265F7 from impose_plugin.rco
 
-	// addr of branch to btn_init from quick_menu_init
-	int btn_init_bl = quick_menu_init + 0x5B8;
-
-	// addr of the function btn_init
+	// Poweroff and standby buttons are initialised with this function
 	int btn_init;
-	GLZ(decode_bl_t1(*(int*)btn_init_bl, &btn_init));
-	btn_init += btn_init_bl + 4;
-
+	GLZ(get_addr_bl((int*)(quick_menu_init + 0x5B8), &btn_init));
 	GLZ(HOOK_OFFSET(0, minfo.modid, btn_init - seg0, 1, btn_init));
 
 	if (!vshSblAimgrIsDolce()) {
@@ -367,10 +362,7 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 
 		// addr of branch to vol_widget_init from quick_menu_init
 		int vol_widget_init_bl = quick_menu_init + 0xC1E;
-
-		// addr of the function vol_widget_init
-		GLZ(decode_bl_t1(*(int*)vol_widget_init_bl, (int*)&vol_widget_init));
-		vol_widget_init += vol_widget_init_bl + 4;
+		GLZ(get_addr_bl((int*)vol_widget_init_bl, (int*)&vol_widget_init));
 
 		// addr of pointer to vol_slidebar_cb
 		int ptr_vol_slidebar_cb;
@@ -380,25 +372,18 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 		// addr of vol_slidebar_cb
 		int vol_slidebar_cb = *(int*)ptr_vol_slidebar_cb;
 
-		// addr of SceAVConfig imports
-		// These are hooked by import due to NID poisoning of SceShell
-		// in non-Enso environment.
+		// Hook these functions to use system volume instead of master volume
+		// Hook by offset in case NIDs are erased when not using Enso
 		int sceAVConfigGetMasterVol, sceAVConfigWriteMasterVol;
-		GLZ(decode_blx_t2(*(int*)(vol_widget_init + 0x346), &sceAVConfigGetMasterVol));
-		unsigned int pc = (unsigned int)vol_widget_init + 0x346 + 0x4;
-		sceAVConfigGetMasterVol += pc - (pc % 4);
+		GLZ(get_addr_blx((int*)(vol_widget_init + 0x346), &sceAVConfigGetMasterVol));
 		sceAVConfigWriteMasterVol = sceAVConfigGetMasterVol - 0x80;
 
 		// set Thumb bit because we will call this function
 		vol_widget_init = (void*)((int)vol_widget_init | 1);
 
-		// addr of branch to music_widget_init from quick_menu_init
-		int music_widget_init_bl = quick_menu_init + 0x1006;
-
-		// addr of the function music_widget_init
+		// Hook this function to move the position of the volume widget
 		int music_widget_init;
-		GLZ(decode_bl_t1(*(int*)music_widget_init_bl, &music_widget_init));
-		music_widget_init += music_widget_init_bl + 4;
+		GLZ(get_addr_bl((int*)(quick_menu_init + 0x1006), &music_widget_init));
 
 		// disable original call to vol_widget_init just in case (mov.w r0, #0)
 		GLZ(INJECT_ABS(1, (void*)vol_widget_init_bl, "\x4f\xf0\x00\x00", 4));
@@ -413,16 +398,10 @@ USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 	// Disable quick menu gradient effect (cmp r0, r0)
 	GLZ(INJECT_ABS(2, (void*)(quick_menu_init + 0x186), "\x80\x42", 2));
 
+	// Custom style for the Quick Menu background
 	if (bg_style != BG_STYLE_ORIGINAL) {
-		// Address of branch to bg_plane_init
-		int bg_plane_init_bl = quick_menu_init + 0x12C;
-
-		// Address of the function bg_plane_init
 		int bg_plane_init;
-		GLZ(decode_bl_t1(*(int*)bg_plane_init_bl, &bg_plane_init));
-		bg_plane_init += bg_plane_init_bl + 4;
-
-		// Custom style for the Quick Menu background
+		GLZ(get_addr_bl((int*)(quick_menu_init + 0x12C), &bg_plane_init));
 		GLZ(HOOK_OFFSET(6, minfo.modid, bg_plane_init - seg0, 1, bg_plane_init));
 	}
 
