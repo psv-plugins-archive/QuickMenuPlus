@@ -29,13 +29,13 @@ ur0:/tai/quickmenuplus.suprx
 
 Put files in the directory `ur0:/data/quickmenuplus` to configure Quick Menu Plus.
 
-- `pushtime.txt` sets the Quick Menu PS button push time. Put in the file the desired push time in microseconds. For example, put `250000` for 250 milliseconds. If the file does not exist, the push time is unchanged.
+- `pushtime.txt` sets the Quick Menu PS button push time. Put in the file the desired push time in microseconds. For example, put `250000` for 250 milliseconds. If the file does not exist, the default time is 500 milliseconds.
 
-- `standbyisrestart.txt` sets the standby button to function as a restart button. Put in the file `1` to enable, or `0` to disable. If the file does not exist, the default is disable. When this setting is disabled, hold the "Power Off・Restart" button to restart, and press to power off.
+- `standbyisrestart.txt` sets the standby button to function as a restart button. Put in the file `1` to enable, or `0` to disable. If the file does not exist, the default is enabled on the Vita, and disabled on the PSTV. When this setting is disabled, hold the "Power Off・Restart" button to restart, and press to power off.
 
     ![standbyisrestart-preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/standbyisrestart-preview-small.png?h=assets)
 
-- `bgstyle.txt` sets the background style. Put in the file `0` for original, `1` for translucent, and `2` for black. If the file does not exist, the default is original. Black can reduce power consumption for OLED screens. The gradient effect is removed in all styles.
+- `bgstyle.txt` sets the background style. Put in the file `0` for original, `1` for translucent, and `2` for black. If the file does not exist, the default is translucent. Black can reduce power consumption for OLED screens. The gradient effect is removed in all styles.
 
     ![bgstyle-preview.png](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus/plain/bgstyle-preview-small.png?h=assets)
 

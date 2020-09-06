@@ -18,6 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #ifndef CONFIG_H
 #define CONFIG_H
 
-int config_read_key(const char *key);
+int config_read_key(const char *key, int default_val);
 
 #endif

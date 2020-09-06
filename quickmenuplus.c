@@ -347,13 +347,9 @@ static void cleanup(void) {
 USED int module_start(UNUSED SceSize args, UNUSED const void *argp) {
 	startup();
 
-	int pushtime = config_read_key("pushtime");
-	if (pushtime) {
-		vshPowerSetPsButtonPushTime(pushtime);
-	}
-
-	standby_is_restart = config_read_key("standbyisrestart");
-	bg_style = config_read_key("bgstyle");
+	vshPowerSetPsButtonPushTime(config_read_key("pushtime", 500000));
+	standby_is_restart = config_read_key("standbyisrestart", !vshSblAimgrIsDolce());
+	bg_style = config_read_key("bgstyle", BG_STYLE_TRANSLUCENT);
 
 	// get SceShell module info
 	tai_module_info_t minfo;

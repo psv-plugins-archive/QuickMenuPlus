@@ -20,16 +20,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #include "config.h"
 
-int config_read_key(const char *key) {
-	int ret = 0;
+int config_read_key(const char *key, int default_val) {
+	int ret = default_val;
 	char buf[64];
-	sceClibMemset(buf, 0x00, sizeof(buf));
 
 	if (sceClibSnprintf(buf, sizeof(buf), "ur0:/data/quickmenuplus/%s.txt", key) >= 0) {
 		SceUID fd = sceIoOpen(buf, SCE_O_RDONLY, 0);
 		if (fd >= 0) {
 			sceClibMemset(buf, 0x00, sizeof(buf));
-			if (sceIoRead(fd, buf, sizeof(buf)) >= 0) {
+			if (sceIoRead(fd, buf, sizeof(buf) - 1) >= 0) {
 				ret = sceClibStrtoll(buf, NULL, 0);
 			}
 			sceIoClose(fd);
