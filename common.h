@@ -26,7 +26,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 } while (0)
 
 #define RLZ(x) do {\
-	if ((x) < 0) { return (x); }\
+	__typeof__(x) __ret__ = (x);\
+	if (__ret__ < 0) { return __ret__; }\
 } while(0)
 
 #define RNE(x, k) do {\
