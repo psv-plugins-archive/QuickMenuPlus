@@ -1,7 +1,8 @@
 /*
-This file is part of Quick Menu Plus
 Copyright © 2020 浅倉麗子
 Copyright © 2020 Princess-of-Sleeping
+
+This file is part of Quick Menu Plus
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

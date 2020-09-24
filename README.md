@@ -18,7 +18,7 @@ Supported firmware versions:
 - Testkit 3.60, 3.65
 - Devkit 3.60
 
-Install under `*main` of your taiHEN config.
+Write the file path in the `*main` section of your taiHEN config.
 
 ```
 *main
@@ -68,4 +68,4 @@ Use [git-format-patch](https://www.git-scm.com/docs/git-format-patch) or [git-re
 ## See also
 
 - [Discussion](https://forum.devchroma.nl/index.php/topic,78.0.html)
-- [Source code](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus)
+- [Source repository](https://git.shotatoshounenwachigau.moe/vita/quickmenuplus)
