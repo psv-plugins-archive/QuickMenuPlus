@@ -1,6 +1,6 @@
 firmware: 3.60
 modules:
-  ScePaf2:
+  ScePaf:
     nid: 0xCD679177
     libraries:
       ScePafWidget:

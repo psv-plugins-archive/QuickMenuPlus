@@ -76,7 +76,9 @@ add_custom_target(dep-all
 
 dolce_gen_libs(ScePaf_stubs
   ScePaf.yml
-  LIB ScePaf2_stub_weak
+  LIB
+    ScePafWidget_stub_weak
+    ScePafToplevel_stub_weak
 )
 
 # Build self
@@ -97,12 +99,13 @@ target_link_libraries("${ELF}"
   taihen_stub
 
   SceAVConfig_stub
-  SceKernelModulemgr_stub
   SceLibKernel_stub
-  ScePaf_stub_weak
-  ScePaf2_stub_weak
-  SceRegistryMgr_stub
-  SceShellSvc_stub_weak
+  SceModulemgr_stub
+  ScePafStdc_stub_weak
+  ScePafToplevel_stub_weak
+  ScePafWidget_stub_weak
+  SceRegMgrForSDK_stub
+  SceShellUtil_stub_weak
   SceVshBridge_stub
 )
 
